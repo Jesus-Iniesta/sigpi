@@ -9,6 +9,7 @@ from app.db.base import Base
 from app.models.enums import SupportLevel, UserType
 
 if TYPE_CHECKING:
+    from app.models.catalog import Especialidad, Turno
     from app.models.organization import OrganizationalUnit
 
 
@@ -24,6 +25,7 @@ class User(Base):
     support_level: Mapped[SupportLevel | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     max_load: Mapped[int | None] = mapped_column()
+    shift_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shifts.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
@@ -33,6 +35,8 @@ class User(Base):
     roles: Mapped[list["UserRole"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    shift: Mapped["Turno | None"] = relationship()
+    specialties: Mapped[list["Especialidad"]] = relationship(secondary="user_specialties")
 
 
 class Role(Base):
@@ -55,3 +59,17 @@ class UserRole(Base):
 
     user: Mapped[User] = relationship(back_populates="roles")
     role: Mapped[Role] = relationship(back_populates="users")
+
+
+class UserSpecialty(Base):
+    """Especialidades que un técnico está habilitado para atender.
+
+    Alimenta al motor de asignación inteligente para determinar los
+    técnicos elegibles según la categoría de la incidencia (RN-08).
+    """
+
+    __tablename__ = "user_specialties"
+    __table_args__ = (UniqueConstraint("user_id", "specialty_id", name="uq_user_specialty"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    specialty_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("specialties.id"), primary_key=True)
