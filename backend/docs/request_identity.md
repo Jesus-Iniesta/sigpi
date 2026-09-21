@@ -1,7 +1,7 @@
 
 REQUEST IDENTITY 
 Descripción: La entidad solicitud (request) debe contener las siguientes características. 
-
+g
 NOTA: Están escritas como sería su declaración en SQL. Ello sirve para aclarar los campos necesarios 
 
 --AQUÍ TENEMOS EL PRIMER MODELO, 
