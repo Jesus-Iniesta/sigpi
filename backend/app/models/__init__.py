@@ -12,6 +12,7 @@ from app.models.notification import Notification, NotificationTemplate
 from app.models.organization import OrganizationalUnit
 from app.models.request import Request, RequestAssignment, RequestEscalation, RequestLog
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
+from app.models.identity import Role, User, UserRole, UserSpecialty
 
 __all__ = [
     "AcademicRecord",
@@ -43,4 +44,5 @@ __all__ = [
     "Turno",
     "User",
     "UserRole",
+    "UserSpecialty",
 ]
