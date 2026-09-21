@@ -1,0 +1,15 @@
+fastapi[standard]
+sqlalchemy[asyncio]
+alembic
+pydantic
+pydantic-settings
+python-dotenv
+psycopg2-binary
+asyncpg
+python-jose[cryptography]
+pwdlib[argon2]
+python-multipart
+email-validator
+pytest
+pytest-asyncio
+ruff

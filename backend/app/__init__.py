@@ -1,0 +1,1 @@
+"""SIGPI backend application package."""
