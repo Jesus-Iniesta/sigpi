@@ -79,3 +79,31 @@ class RequestListItem(BaseModel):
     category_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
+
+
+class RequestLogCreate(BaseModel):
+    """Fields accepted when appending a new entry to a request's bitácora."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: uuid.UUID
+    author_id: uuid.UUID
+    previous_status: RequestStatus | None = None
+    new_status: RequestStatus | None = None
+    action: str = Field(min_length=1, max_length=120)
+    notes: str | None = None
+
+
+class RequestLogRead(BaseModel):
+    """Public representation of a bitácora entry returned by the API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    request_id: uuid.UUID
+    author_id: uuid.UUID
+    previous_status: RequestStatus | None
+    new_status: RequestStatus | None
+    action: str
+    notes: str | None
+    created_at: datetime
