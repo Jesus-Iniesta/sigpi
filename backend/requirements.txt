@@ -10,6 +10,7 @@ python-jose[cryptography]
 pwdlib[argon2]
 python-multipart
 email-validator
+typer
 pytest
 pytest-asyncio
 ruff
