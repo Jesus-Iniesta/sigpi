@@ -7,4 +7,4 @@ line-length = 100
 target-version = "py314"
 
 [tool.ruff.lint]
-extend-ignore = ["F821", "UP037"]
+extend-ignore = ["F821", "UP037", "B008"]
