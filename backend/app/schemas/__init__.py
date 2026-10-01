@@ -1,5 +1,6 @@
 """Pydantic request and response contracts."""
 
+from app.schemas.identity import UserCreate, UserRead
 from app.schemas.request import (
     RequestCreate,
     RequestListItem,
@@ -16,4 +17,6 @@ __all__ = [
     "RequestLogRead",
     "RequestRead",
     "RequestUpdate",
+    "UserCreate",
+    "UserRead",
 ]
