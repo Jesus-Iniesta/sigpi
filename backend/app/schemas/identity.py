@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
     unit_id: uuid.UUID | None = None
     max_load: int | None = Field(default=None, ge=0)
 
+
 class UserUpdate(BaseModel):
     """Fields that can be modified on an existing account.
 
@@ -33,6 +34,7 @@ class UserUpdate(BaseModel):
     role: RoleName | None = None
     unit_id: uuid.UUID | None = None
     max_load: int | None = Field(default=None, ge=0)
+
 
 class UserRead(BaseModel):
     """Public representation of a user account, with roles flattened to their names."""

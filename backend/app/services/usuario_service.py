@@ -1,12 +1,12 @@
 """Use cases for provisioning and maintaining user accounts (HU-10.1)."""
 
 import uuid
+from typing import Any
 
 from app.core.permissions import RoleName
 from app.domain.directory import DirectoryClient
 from app.models.identity import User
 from app.repositories.usuario_repository import UsuarioRepository
-from typing import Any
 
 
 class UnknownDirectoryAccountError(LookupError):
