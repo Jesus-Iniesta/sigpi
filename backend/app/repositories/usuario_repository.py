@@ -61,3 +61,15 @@ class UsuarioRepository:
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def update_fields(self, user: User, fields: dict) -> User:
+        for key, value in fields.items():
+            setattr(user, key, value)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+    async def replace_roles(self, user_id: uuid.UUID, role_id: uuid.UUID) -> None:
+        await self.session.execute(delete(UserRole).where(UserRole.user_id == user_id))
+        self.session.add(UserRole(user_id=user_id, role_id=role_id))
+        await self.session.commit()

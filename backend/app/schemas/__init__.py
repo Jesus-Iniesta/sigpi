@@ -12,7 +12,7 @@ from app.schemas.catalog import (
     TechnicianProfileUpdate,
     TechnicianRead,
 )
-from app.schemas.identity import UserCreate, UserRead
+from app.schemas.identity import UserCreate, UserRead, UserUpdate
 from app.schemas.request import (
     RequestCreate,
     RequestListItem,
@@ -41,4 +41,5 @@ __all__ = [
     "TechnicianRead",
     "UserCreate",
     "UserRead",
+    "UserUpdate",
 ]

@@ -20,6 +20,19 @@ class UserCreate(BaseModel):
     unit_id: uuid.UUID | None = None
     max_load: int | None = Field(default=None, ge=0)
 
+class UserUpdate(BaseModel):
+    """Fields that can be modified on an existing account.
+
+    Only fields explicitly sent by the client are applied (ver `exclude_unset`
+    en el servicio); omitir un campo lo deja sin cambios, mientras que enviarlo
+    explícitamente como `null` lo limpia.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: RoleName | None = None
+    unit_id: uuid.UUID | None = None
+    max_load: int | None = Field(default=None, ge=0)
 
 class UserRead(BaseModel):
     """Public representation of a user account, with roles flattened to their names."""

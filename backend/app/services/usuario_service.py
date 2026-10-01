@@ -6,6 +6,7 @@ from app.core.permissions import RoleName
 from app.domain.directory import DirectoryClient
 from app.models.identity import User
 from app.repositories.usuario_repository import UsuarioRepository
+from typing import Any
 
 
 class UnknownDirectoryAccountError(LookupError):
@@ -68,3 +69,22 @@ class UsuarioService:
 
     async def list_active_users(self) -> list[User]:
         return await self.repository.list_active()
+
+    async def update_user(self, user_id: uuid.UUID, updates: dict[str, Any]) -> User:
+        user = await self.repository.get_by_id(user_id)
+        if user is None:
+            raise LookupError(f"No existe un usuario con id {user_id}.")
+
+        role = updates.pop("role", None)
+        if role is not None:
+            role_row = await self.repository.get_role_by_name(role)
+            if role_row is None:
+                raise RoleNotConfiguredError(f"El rol {role.value} no está configurado.")
+            await self.repository.replace_roles(user.id, role_row.id)
+
+        if updates:
+            await self.repository.update_fields(user, updates)
+
+        refreshed = await self.repository.get_by_id(user_id)
+        assert refreshed is not None
+        return refreshed

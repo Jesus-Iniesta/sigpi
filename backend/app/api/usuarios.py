@@ -9,7 +9,7 @@ from app.db.session import get_session
 from app.domain.directory import DirectoryClient
 from app.integrations.directory_client import StubDirectoryClient
 from app.repositories.usuario_repository import UsuarioRepository
-from app.schemas.identity import UserCreate, UserRead
+from app.schemas.identity import UserCreate, UserRead, UserUpdate
 from app.services.usuario_service import (
     DuplicateUserError,
     RoleNotConfiguredError,
@@ -64,5 +64,21 @@ async def deactivate_user(
 ) -> UserRead:
     try:
         return await service.deactivate_user(user_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.patch("/{user_id}", response_model=UserRead)
+async def update_user(
+    user_id: uuid.UUID,
+    payload: UserUpdate,
+    service: UsuarioService = Depends(get_usuario_service),
+) -> UserRead:
+    try:
+        return await service.update_user(user_id, payload.model_dump(exclude_unset=True))
+    except RoleNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
