@@ -32,8 +32,6 @@ __all__ = [
     "RequestLogRead",
     "RequestRead",
     "RequestUpdate",
-    "UserCreate",
-    "UserRead",
     "ServiceAreaCreate",
     "ServiceAreaRead",
     "ShiftCreate",
@@ -42,4 +40,6 @@ __all__ = [
     "SpecialtyRead",
     "TechnicianProfileUpdate",
     "TechnicianRead",
+    "UserCreate",
+    "UserRead",
 ]
