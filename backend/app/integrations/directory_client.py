@@ -5,7 +5,7 @@ exists. It must implement the same `DirectoryClient` protocol from
 `app.domain.directory` so no other code needs to change.
 """
 
-from app.domain.directory import DirectoryClient, DirectoryProfile
+from app.domain.directory import DirectoryProfile
 from app.models.enums import UserType
 
 # Perfiles de ejemplo para pruebas manuales en Swagger mientras no existe el

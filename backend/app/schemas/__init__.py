@@ -1,6 +1,5 @@
 """Pydantic request and response contracts."""
 
-from app.schemas.identity import UserCreate, UserRead
 from app.schemas.catalog import (
     CategoryCreate,
     CategoryRead,
@@ -13,7 +12,7 @@ from app.schemas.catalog import (
     TechnicianProfileUpdate,
     TechnicianRead,
 )
-
+from app.schemas.identity import UserCreate, UserRead
 from app.schemas.request import (
     RequestCreate,
     RequestListItem,
