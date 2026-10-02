@@ -59,7 +59,9 @@ class UsuarioService:
         )
         created = await self.repository.add(user)
         await self.repository.assign_role(created.id, role_row.id)
-        return created
+        loaded = await self.repository.get_by_id(created.id)
+        assert loaded is not None
+        return loaded
 
     async def deactivate_user(self, user_id: uuid.UUID) -> User:
         user = await self.repository.get_by_id(user_id)
