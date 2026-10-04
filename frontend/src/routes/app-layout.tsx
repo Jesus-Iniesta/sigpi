@@ -1,6 +1,7 @@
 import {
   Activity,
   ClipboardList,
+  BookOpen,
   LayoutDashboard,
   Menu,
   Settings2,
@@ -13,6 +14,7 @@ const navigation = [
   { label: 'Resumen', to: '/', icon: LayoutDashboard, end: true },
   { label: 'Solicitudes', to: '/solicitudes', icon: ClipboardList },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
+  { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
 ]
 
 export function AppLayout() {
