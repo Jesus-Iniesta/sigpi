@@ -16,7 +16,14 @@ export async function apiFetch<T>(
   })
 
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`)
+    let detail = `API request failed with status ${response.status}`
+    try {
+      const body = (await response.json()) as { detail?: string }
+      if (body.detail) detail = body.detail
+    } catch {
+      // Keep the status-based message when the server response is not JSON.
+    }
+    throw new Error(detail)
   }
 
   return response.json() as Promise<T>

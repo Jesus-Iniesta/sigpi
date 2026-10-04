@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings2,
+  Users,
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { cn } from '@/shared/lib/utils'
@@ -11,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 const navigation = [
   { label: 'Resumen', to: '/', icon: LayoutDashboard, end: true },
   { label: 'Solicitudes', to: '/solicitudes', icon: ClipboardList },
+  { label: 'Usuarios', to: '/usuarios', icon: Users },
 ]
 
 export function AppLayout() {

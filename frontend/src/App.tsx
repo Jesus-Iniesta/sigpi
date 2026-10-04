@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { RequestsPage } from '@/features/requests/requests-page'
+import { UsersPage } from '@/features/users/users-page'
 import { AppLayout } from '@/routes/app-layout'
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="solicitudes" element={<RequestsPage />} />
+        <Route path="usuarios" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
