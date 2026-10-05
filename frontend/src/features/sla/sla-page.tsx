@@ -637,3 +637,67 @@ export function SlaPage() {
                       <tr key={version.id}>
                         <td className="px-5 py-3 font-mono">
                           v{version.version}
+                        </td>
+                        <td className="px-5 py-3 font-semibold">
+                          {version.priority}
+                        </td>
+                        <td className="px-5 py-3">
+                          {formatMinutes(version.first_response_minutes)}
+                        </td>
+                        <td className="px-5 py-3">
+                          {formatMinutes(version.resolution_minutes)}
+                        </td>
+                        <td className="px-5 py-3 text-[#52616b]">
+                          {formatDate(version.valid_from)}
+                        </td>
+                        <td className="px-5 py-3 text-[#52616b]">
+                          {versionStatus(version)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      <EffectiveLookup categories={categories} />
+
+      {showAgreementForm && (
+        <AgreementDialog
+          categories={categories}
+          isSaving={createAgreement.isPending}
+          serverError={errorMessage(createAgreement.error)}
+          onClose={() =>
+            !createAgreement.isPending && setShowAgreementForm(false)
+          }
+          onSubmit={(input) =>
+            createAgreement.mutate(input, {
+              onSuccess: (created) => {
+                setSelectedId(created.id)
+                setShowAgreementForm(false)
+              },
+            })
+          }
+        />
+      )}
+
+      {versionForm && selected && (
+        <VersionDialog
+          initialValidFrom={versionForm.validFrom}
+          current={versionForm.current}
+          isSaving={publishVersion.isPending}
+          serverError={errorMessage(publishVersion.error)}
+          onClose={() => !publishVersion.isPending && setVersionForm(null)}
+          onSubmit={(input) =>
+            publishVersion.mutate(input, {
+              onSuccess: () => setVersionForm(null),
+            })
+          }
+        />
+      )}
+    </div>
+  )
+}
