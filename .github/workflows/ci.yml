@@ -49,5 +49,7 @@ jobs:
         run: pnpm run lint
       - name: Formato (Prettier)
         run: pnpm run format:check
+      - name: Pruebas (Vitest)
+        run: pnpm run test
       - name: Compilar (tsc + vite build)
         run: pnpm run build
