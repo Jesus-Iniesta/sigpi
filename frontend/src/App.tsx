@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { RequestsPage } from '@/features/requests/requests-page'
+import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
 import { AppLayout } from '@/routes/app-layout'
 
@@ -13,6 +14,7 @@ function App() {
         <Route path="solicitudes" element={<RequestsPage />} />
         <Route path="usuarios" element={<UsersPage />} />
         <Route path="catalogo" element={<CatalogPage />} />
+        <Route path="sla" element={<SlaPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
