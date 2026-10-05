@@ -75,11 +75,13 @@ export const getAreas = () => apiFetch<ServiceArea[]>('/catalog/areas')
 
 export const getCategories = () => apiFetch<Category[]>('/catalog/categories')
 
-export const getSpecialties = () => apiFetch<Specialty[]>('/catalog/specialties')
+export const getSpecialties = () =>
+  apiFetch<Specialty[]>('/catalog/specialties')
 
 export const getShifts = () => apiFetch<Shift[]>('/catalog/shifts')
 
-export const getTechnicians = () => apiFetch<Technician[]>('/catalog/technicians')
+export const getTechnicians = () =>
+  apiFetch<Technician[]>('/catalog/technicians')
 
 export const createArea = (input: ServiceAreaInput) =>
   apiFetch<ServiceArea>('/catalog/areas', {
