@@ -206,6 +206,7 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
     expect(createAgreementMock.mock.calls[0][0]).toEqual({
       name: 'Redes',
       category_id: 'cat-1',
+      is_default: false,
     })
   })
 

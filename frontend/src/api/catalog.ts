@@ -1,87 +1,56 @@
 import { apiFetch } from '@/api/client'
+import type {
+  Category,
+  CategoryInput,
+  ServiceArea,
+  ServiceAreaInput,
+  Shift,
+  ShiftInput,
+  Specialty,
+  SpecialtyInput,
+  Technician,
+  TechnicianUpdate,
+} from '@/api/types'
 
-export type ServiceArea = {
-  id: string
-  unit_id: string
-  name: string
-  description: string | null
-  is_active: boolean
-}
-
-export type Category = {
-  id: string
-  area_id: string
-  name: string
-  description: string | null
-  is_active: boolean
-}
-
-export type Specialty = {
-  id: string
-  category_id: string
-  name: string
-  is_active: boolean
-}
-
-export type Shift = {
-  id: string
-  name: string
-  start_minute: number
-  end_minute: number
-  is_active: boolean
-}
-
-export type Technician = {
-  id: string
-  full_name: string
-  support_level: 'level_1' | 'level_2' | null
-  shift_id: string | null
-  max_load: number | null
-  is_active: boolean
-  specialty_ids: string[]
-}
-
-export type TechnicianUpdate = {
-  support_level?: Technician['support_level']
-  shift_id?: string | null
-  max_load?: number | null
-  specialty_ids?: string[]
-}
-
-export type ServiceAreaInput = {
-  unit_id: string
-  name: string
-  description?: string | null
-}
-
-export type CategoryInput = {
-  area_id: string
-  name: string
-  description?: string | null
-}
-
-export type SpecialtyInput = {
-  category_id: string
-  name: string
-}
-
-export type ShiftInput = {
-  name: string
-  start_minute: number
-  end_minute: number
+export type {
+  Category,
+  CategoryInput,
+  ServiceArea,
+  ServiceAreaInput,
+  Shift,
+  ShiftInput,
+  Specialty,
+  SpecialtyInput,
+  Technician,
+  TechnicianUpdate,
 }
 
 export const getAreas = () => apiFetch<ServiceArea[]>('/catalog/areas')
 
 export const getCategories = () => apiFetch<Category[]>('/catalog/categories')
 
+export const getCategoriesByArea = (areaId: string) =>
+  apiFetch<Category[]>(
+    `/catalog/categories?area_id=${encodeURIComponent(areaId)}`,
+  )
+
 export const getSpecialties = () =>
   apiFetch<Specialty[]>('/catalog/specialties')
+
+export const getSpecialtiesByCategory = (categoryId: string) =>
+  apiFetch<Specialty[]>(
+    `/catalog/specialties?category_id=${encodeURIComponent(categoryId)}`,
+  )
 
 export const getShifts = () => apiFetch<Shift[]>('/catalog/shifts')
 
 export const getTechnicians = () =>
   apiFetch<Technician[]>('/catalog/technicians')
+
+export const getTechniciansBySpecialty = (specialtyId: string) =>
+  apiFetch<Technician[]>(
+    `/catalog/technicians?specialty_id=${encodeURIComponent(specialtyId)}`,
+  )
 
 export const createArea = (input: ServiceAreaInput) =>
   apiFetch<ServiceArea>('/catalog/areas', {

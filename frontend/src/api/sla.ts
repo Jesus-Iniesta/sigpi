@@ -1,90 +1,68 @@
 import { apiFetch } from '@/api/client'
+import type {
+  CreateSlaAgreementInput,
+  CreateSlaVersionInput,
+  EffectiveSla,
+  Priority,
+  SlaAgreement,
+  SlaVersion,
+} from '@/api/types'
 
-export const priorities = ['P1', 'P2', 'P3', 'P4'] as const
+export const priorities = ['P1', 'P2', 'P3', 'P4'] as const satisfies readonly Priority[]
 
-export type Priority = (typeof priorities)[number]
-
-export type SlaAgreement = {
-  id: string
-  category_id: string | null
-  name: string
-  is_default: boolean
-  is_active: boolean
-  created_at: string
+export type {
+  EffectiveSla,
+  Priority,
+  SlaAgreement,
+  SlaVersion,
 }
 
-export type SlaVersion = {
-  id: string
-  agreement_id: string
-  version: number
-  priority: Priority
-  first_response_minutes: number
-  resolution_minutes: number
-  valid_from: string
-  valid_to: string | null
-}
-
-export type SlaAgreementInput = {
-  name: string
-  category_id?: string | null
-  is_default?: boolean
-}
-
-export type SlaPriorityTimes = {
-  priority: Priority
-  first_response_minutes: number
-  resolution_minutes: number
-}
-
-export type SlaVersionInput = {
-  valid_from: string
-  times: SlaPriorityTimes[]
-}
-
-export type EffectiveSla = {
-  agreement_id: string
-  agreement_name: string
-  version: number
-  priority: Priority
-  first_response_minutes: number
-  resolution_minutes: number
-  valid_from: string
-  used_default: boolean
-  notice: string | null
-}
-
+export type SlaAgreementInput = CreateSlaAgreementInput
+export type SlaPriorityTimes = CreateSlaVersionInput['times'][number]
+export type SlaVersionInput = CreateSlaVersionInput
 export type EffectiveSlaQuery = {
   priority: Priority
   categoryId?: string
   at?: string
 }
 
-export const getSlaAgreements = () =>
+export const getSlaAgreements = (): Promise<SlaAgreement[]> =>
   apiFetch<SlaAgreement[]>('/sla/agreements')
 
-export const createSlaAgreement = (input: SlaAgreementInput) =>
+export const createSlaAgreement = (
+  input: SlaAgreementInput,
+): Promise<SlaAgreement> =>
   apiFetch<SlaAgreement>('/sla/agreements', {
     method: 'POST',
     body: JSON.stringify(input),
   })
 
-export const getSlaVersions = (agreementId: string) =>
-  apiFetch<SlaVersion[]>(`/sla/agreements/${agreementId}/versions`)
+export const getSlaVersions = (
+  agreementId: string,
+  priority?: Priority,
+): Promise<SlaVersion[]> => {
+  const query = priority ? `?priority=${encodeURIComponent(priority)}` : ''
+  return apiFetch<SlaVersion[]>(
+    `/sla/agreements/${agreementId}/versions${query}`,
+  )
+}
 
 export const publishSlaVersion = (
   agreementId: string,
   input: SlaVersionInput,
-) =>
+): Promise<SlaVersion[]> =>
   apiFetch<SlaVersion[]>(`/sla/agreements/${agreementId}/versions`, {
     method: 'POST',
     body: JSON.stringify(input),
   })
 
+export const createSlaVersion = publishSlaVersion
+
 export function getEffectiveSla({
   priority,
   categoryId,
   at,
-}: EffectiveSlaQuery) {
+}: EffectiveSlaQuery): Promise<EffectiveSla> {
   const params = new URLSearchParams({ priority })
   if (categoryId) params.set('category_id', categoryId)
   if (at) params.set('at', at)

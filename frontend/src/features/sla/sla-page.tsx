@@ -81,7 +81,7 @@ function AgreementDialog({
     onSubmit(
       kind === 'default'
         ? { name: name.trim(), is_default: true }
-        : { name: name.trim(), category_id: categoryId },
+        : { name: name.trim(), category_id: categoryId, is_default: false },
     )
   }
 
