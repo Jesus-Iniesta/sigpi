@@ -1,7 +1,7 @@
 """SQLAlchemy persistence models for SIGPI."""
 
 from app.models.academic import AcademicRecord, EducationalProgram
-from app.models.audit import AuditLog
+from app.models.auditoria import AuditLog, Auditoria
 from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.models.classification import ClassificationCorrection, ClassificationResult, ModelVersion
 from app.models.identity import Role, User, UserRole, UserSpecialty
@@ -19,6 +19,7 @@ __all__ = [
     "Asset",
     "AssetCustody",
     "AuditLog",
+    "Auditoria",
     "Categoria",
     "ClassificationCorrection",
     "ClassificationResult",
