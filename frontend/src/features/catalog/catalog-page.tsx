@@ -94,7 +94,10 @@ export function CatalogPage() {
   const results = useQueries({
     queries: [
       { queryKey: ['catalog', 'areas'], queryFn: getAreas },
-      { queryKey: ['catalog', 'organizational-units'], queryFn: getOrganizationalUnits },
+      {
+        queryKey: ['catalog', 'organizational-units'],
+        queryFn: getOrganizationalUnits,
+      },
       { queryKey: ['catalog', 'categories'], queryFn: getCategories },
       { queryKey: ['catalog', 'specialties'], queryFn: getSpecialties },
       { queryKey: ['catalog', 'shifts'], queryFn: getShifts },
