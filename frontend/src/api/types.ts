@@ -8,6 +8,7 @@ export type User = Omit<ApiSchemas['UserRead'], 'roles'> & {
 export type CreateUserInput = ApiSchemas['UserCreate']
 export type UpdateUserInput = ApiSchemas['UserUpdate']
 export type ServiceArea = ApiSchemas['ServiceAreaRead']
+export type OrganizationalUnit = ApiSchemas['OrganizationalUnitRead']
 export type Category = ApiSchemas['CategoryRead']
 export type Specialty = ApiSchemas['SpecialtyRead']
 export type Shift = ApiSchemas['ShiftRead']

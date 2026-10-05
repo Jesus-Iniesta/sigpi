@@ -408,6 +408,17 @@ export interface components {
          * @enum {string}
          */
         RoleName: "administrator" | "service_manager" | "support_agent" | "classifier" | "knowledge_manager" | "auditor" | "requester";
+        /** OrganizationalUnitRead */
+        OrganizationalUnitRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Unit Type */
+            unit_type: string;
+            /** Code */
+            code: string | null;
+        };
         /** ServiceAreaCreate */
         ServiceAreaCreate: {
             /**

@@ -17,6 +17,7 @@ import {
   createSpecialty,
   getAreas,
   getCategories,
+  getOrganizationalUnits,
   getShifts,
   getSpecialties,
   getTechnicians,
@@ -93,6 +94,7 @@ export function CatalogPage() {
   const results = useQueries({
     queries: [
       { queryKey: ['catalog', 'areas'], queryFn: getAreas },
+      { queryKey: ['catalog', 'organizational-units'], queryFn: getOrganizationalUnits },
       { queryKey: ['catalog', 'categories'], queryFn: getCategories },
       { queryKey: ['catalog', 'specialties'], queryFn: getSpecialties },
       { queryKey: ['catalog', 'shifts'], queryFn: getShifts },
@@ -101,12 +103,14 @@ export function CatalogPage() {
   })
   const [
     areasQuery,
+    organizationalUnitsQuery,
     categoriesQuery,
     specialtiesQuery,
     shiftsQuery,
     techniciansQuery,
   ] = results
   const areas = areasQuery.data ?? []
+  const organizationalUnits = organizationalUnitsQuery.data ?? []
   const categories = categoriesQuery.data ?? []
   const specialties = specialtiesQuery.data ?? []
   const shifts = shiftsQuery.data ?? []
@@ -206,7 +210,7 @@ export function CatalogPage() {
     if (formType === 'area') {
       catalogMutations.area.mutate(
         {
-          unit_id: String(formData.get('unit_id')),
+          unit_id: String(formData.get('unit_id') ?? ''),
           name: String(formData.get('name')).trim(),
           description: String(formData.get('description') || '').trim() || null,
         },
@@ -633,13 +637,29 @@ export function CatalogPage() {
           <form className="space-y-4" onSubmit={handleCatalogSubmit}>
             {formType === 'area' && (
               <label className="block text-sm font-medium text-[#334155]">
-                ID de unidad organizacional
-                <input
+                Unidad organizacional
+                <select
                   required
                   name="unit_id"
-                  placeholder="UUID de la unidad"
                   className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
-                />
+                >
+                  <option value="">Selecciona una unidad</option>
+                  {organizationalUnits.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.code ? `${unit.code} — ` : ''}
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs text-[#718096]">
+                  El identificador interno se asigna automáticamente.
+                </span>
+                {organizationalUnits.length === 0 && (
+                  <span className="mt-1 block text-xs text-[#b54735]">
+                    No hay unidades disponibles. Ejecuta las semillas del
+                    backend para cargar la unidad SPT.
+                  </span>
+                )}
               </label>
             )}
             {(formType === 'category' || formType === 'specialty') && (

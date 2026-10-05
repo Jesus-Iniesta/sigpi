@@ -101,6 +101,22 @@ def _create_catalog(client: TestClient, unit_id: uuid.UUID) -> tuple[str, str, s
     return area_id, category_id, specialty_id, shift.json()["id"]
 
 
+def test_unidades_organizacionales_activas_se_listan_para_crear_areas(catalog_client) -> None:
+    client, unit_id, _ = catalog_client
+
+    response = client.get("/catalog/organizational-units")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == [
+        {
+            "id": str(unit_id),
+            "name": f"Soporte {unit_id}",
+            "unit_type": "department",
+            "code": f"SUP-{unit_id.hex[:8]}",
+        }
+    ]
+
+
 def test_catalogo_creado_aparece_inmediatamente_en_listados(catalog_client) -> None:
     client, unit_id, _technician_id = catalog_client
 

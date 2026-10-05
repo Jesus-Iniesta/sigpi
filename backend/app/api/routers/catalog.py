@@ -1,10 +1,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.identity import User
+from app.models.organization import OrganizationalUnit
 from app.repositories.catalog_repository import (
     CategoryRepository,
     ServiceAreaRepository,
@@ -15,6 +17,7 @@ from app.repositories.catalog_repository import (
 from app.schemas.catalog import (
     CategoryCreate,
     CategoryRead,
+    OrganizationalUnitRead,
     ServiceAreaCreate,
     ServiceAreaRead,
     ShiftCreate,
@@ -58,6 +61,18 @@ def _unprocessable(exc: CatalogValidationError) -> HTTPException:
 @router.get("/areas", response_model=list[ServiceAreaRead])
 async def list_areas(service: CatalogService = Depends(get_catalog_service)):
     return await service.list_areas()
+
+
+@router.get("/organizational-units", response_model=list[OrganizationalUnitRead])
+async def list_organizational_units(
+    session: AsyncSession = Depends(get_session),
+):
+    result = await session.scalars(
+        select(OrganizationalUnit)
+        .where(OrganizationalUnit.is_active.is_(True))
+        .order_by(OrganizationalUnit.name)
+    )
+    return list(result)
 
 
 @router.post("/areas", response_model=ServiceAreaRead, status_code=status.HTTP_201_CREATED)

@@ -15,6 +15,15 @@ class ServiceAreaCreate(BaseModel):
     description: str | None = Field(default=None, max_length=300)
 
 
+class OrganizationalUnitRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    unit_type: str
+    code: str | None
+
+
 class ServiceAreaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

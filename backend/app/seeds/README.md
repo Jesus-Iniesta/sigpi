@@ -1,6 +1,6 @@
 # Seeds
 
-Comandos Typer para cargar las categorías y consultar el catálogo de prioridades de SIGPI.
+Comandos Typer para cargar la unidad organizacional, el área, las categorías y las prioridades de SIGPI.
 
 ## Prerrequisitos
 
@@ -10,7 +10,7 @@ Ejecuta los comandos desde `backend/`, con el entorno virtual activado y las var
 alembic upgrade head
 ```
 
-El área de servicio `Soporte técnico` debe existir antes de cargar las categorías.
+La semilla `all` crea de forma idempotente la unidad `SPT`, el área `Soporte técnico` y sus categorías.
 
 ## Comandos
 
@@ -18,6 +18,18 @@ Ejecutar todas las semillas:
 
 ```bash
 python -m app.seeds all
+```
+
+Crear solo la unidad organizacional:
+
+```bash
+python -m app.seeds units
+```
+
+Crear el área de soporte:
+
+```bash
+python -m app.seeds area
 ```
 
 Cargar únicamente las categorías:

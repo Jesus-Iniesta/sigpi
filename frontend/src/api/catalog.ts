@@ -2,6 +2,7 @@ import { apiFetch } from '@/api/client'
 import type {
   Category,
   CategoryInput,
+  OrganizationalUnit,
   ServiceArea,
   ServiceAreaInput,
   Shift,
@@ -15,6 +16,7 @@ import type {
 export type {
   Category,
   CategoryInput,
+  OrganizationalUnit,
   ServiceArea,
   ServiceAreaInput,
   Shift,
@@ -26,6 +28,9 @@ export type {
 }
 
 export const getAreas = () => apiFetch<ServiceArea[]>('/catalog/areas')
+
+export const getOrganizationalUnits = () =>
+  apiFetch<OrganizationalUnit[]>('/catalog/organizational-units')
 
 export const getCategories = () => apiFetch<Category[]>('/catalog/categories')
 
