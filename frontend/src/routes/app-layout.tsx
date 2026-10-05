@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings2,
+  Timer,
   Users,
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -15,6 +16,7 @@ const navigation = [
   { label: 'Solicitudes', to: '/solicitudes', icon: ClipboardList },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
+  { label: 'SLA', to: '/sla', icon: Timer },
 ]
 
 export function AppLayout() {
