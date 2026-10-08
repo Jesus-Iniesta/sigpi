@@ -4,8 +4,8 @@ Revision ID: 4d9e0a2b7c6f
 Revises: 3c7e8f1a2b4d
 """
 
-from collections.abc import Sequence
 import uuid
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -34,9 +34,7 @@ def upgrade() -> None:
         sa.column("name", sa.String()),
         sa.column("description", sa.String()),
     )
-    existing_names = {
-        row[0] for row in op.get_bind().execute(sa.select(roles.c.name)).fetchall()
-    }
+    existing_names = {row[0] for row in op.get_bind().execute(sa.select(roles.c.name)).fetchall()}
     op.bulk_insert(
         roles,
         [
@@ -49,8 +47,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     roles = sa.table("roles", sa.column("name", sa.String()))
-    op.execute(
-        roles.delete().where(
-            roles.c.name.in_([name for name, _description in ROLE_SEEDS])
-        )
-    )
+    op.execute(roles.delete().where(roles.c.name.in_([name for name, _description in ROLE_SEEDS])))

@@ -76,8 +76,6 @@ async def test_auditoria_rechaza_delete_y_conserva_registro(audit_connection) ->
             await audit_connection.execute(delete(Auditoria).where(Auditoria.id == entry_id))
 
         await savepoint.rollback()
-        row = await audit_connection.execute(
-            select(Auditoria.id).where(Auditoria.id == entry_id)
-        )
+        row = await audit_connection.execute(select(Auditoria.id).where(Auditoria.id == entry_id))
 
         assert row.scalar_one() == entry_id
