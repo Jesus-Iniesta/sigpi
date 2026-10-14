@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     sla_warning_threshold: float = 0.80
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    
+    # Autenticación (S3-03). Define JWT_SECRET_KEY en tu .env; el valor por defecto
+    # solo sirve para desarrollo local y nunca debe usarse en producción.
+    jwt_secret_key: str = "dev-only-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    max_failed_login_attempts: int = 3
+    
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
