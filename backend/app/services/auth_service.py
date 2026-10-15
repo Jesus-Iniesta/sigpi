@@ -58,4 +58,3 @@ class AuthService:
         assert loaded is not None
         roles = [ur.role.name for ur in loaded.roles if ur.role is not None]
         return create_access_token(user_id, roles), loaded
-    

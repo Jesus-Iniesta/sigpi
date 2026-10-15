@@ -29,4 +29,3 @@ class AuthRepository:
     async def set_failed_attempts(self, user: User, attempts: int) -> None:
         user.failed_login_attempts = attempts
         await self.session.commit()
-        
