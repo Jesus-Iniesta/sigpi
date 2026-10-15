@@ -1,8 +1,9 @@
-"""Temporary stand-in for the Microsoft 365 institutional directory.
+"""Stand-in for the institutional directory used when provisioning accounts.
 
-TODO(S3-03): replace with the real adapter once the directory integration
-exists. It must implement the same `DirectoryClient` protocol from
-`app.domain.directory` so no other code needs to change.
+The team decided not to integrate Microsoft 365 (S3-03): SIGPI keeps its own
+credentials and validates them itself. This client only supplies the profile
+data (name, email, user type) for an institutional ID when an account is created.
+It implements the `DirectoryClient` protocol from `app.domain.directory`.
 """
 
 from app.domain.directory import DirectoryProfile

@@ -16,6 +16,7 @@ class UserCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     institutional_id: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
     role: RoleName
     unit_id: uuid.UUID | None = None
     max_load: int | None = Field(default=None, ge=0)
