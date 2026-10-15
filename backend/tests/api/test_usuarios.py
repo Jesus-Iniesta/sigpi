@@ -22,6 +22,7 @@ from app.main import app as fastapi_app
 from app.models.identity import Role
 
 KNOWN_ACCOUNT = "uaem2026001"
+VALID_PASSWORD = "ClaveSegura#2026"
 
 
 @pytest.fixture
@@ -55,7 +56,10 @@ def client():
 
 
 def _alta(client: TestClient, institutional_id: str = KNOWN_ACCOUNT, role: str = "requester"):
-    return client.post("/usuarios", json={"institutional_id": institutional_id, "role": role})
+    return client.post(
+        "/usuarios",
+        json={"institutional_id": institutional_id, "password": VALID_PASSWORD, "role": role},
+    )
 
 
 def test_alta_valida_crea_la_cuenta_con_los_datos_del_directorio(client) -> None:
@@ -68,6 +72,8 @@ def test_alta_valida_crea_la_cuenta_con_los_datos_del_directorio(client) -> None
     assert body["email"] == "amartinez@uaemex.mx"
     assert body["is_active"] is True
     assert body["roles"] == ["requester"]
+    assert "password" not in body
+    assert "password_hash" not in body
 
 
 def test_alta_valida_aparece_en_el_listado_de_cuentas_activas(client) -> None:
@@ -110,15 +116,50 @@ def test_rol_no_configurado_responde_422(client) -> None:
 @pytest.mark.parametrize(
     "payload",
     [
-        {"institutional_id": KNOWN_ACCOUNT, "role": "rol-que-no-existe"},
-        {"institutional_id": "", "role": "requester"},
-        {"institutional_id": KNOWN_ACCOUNT, "role": "requester", "max_load": -1},
-        {"institutional_id": KNOWN_ACCOUNT, "role": "requester", "campo_extra": "x"},
-        {"role": "requester"},
+        {
+            "institutional_id": KNOWN_ACCOUNT,
+            "password": VALID_PASSWORD,
+            "role": "rol-que-no-existe",
+        },
+        {"institutional_id": "", "password": VALID_PASSWORD, "role": "requester"},
+        {
+            "institutional_id": KNOWN_ACCOUNT,
+            "password": VALID_PASSWORD,
+            "role": "requester",
+            "max_load": -1,
+        },
+        {
+            "institutional_id": KNOWN_ACCOUNT,
+            "password": VALID_PASSWORD,
+            "role": "requester",
+            "campo_extra": "x",
+        },
+        {"password": VALID_PASSWORD, "role": "requester"},
+        {"institutional_id": KNOWN_ACCOUNT, "role": "requester"},
+        {"institutional_id": KNOWN_ACCOUNT, "password": "corta", "role": "requester"},
     ],
-    ids=["rol_invalido", "id_vacio", "carga_negativa", "campo_extra", "sin_id"],
+    ids=[
+        "rol_invalido",
+        "id_vacio",
+        "carga_negativa",
+        "campo_extra",
+        "sin_id",
+        "sin_contrasena",
+        "contrasena_corta",
+    ],
 )
 def test_datos_de_alta_invalidos_responden_422(client, payload) -> None:
     response = client.post("/usuarios", json=payload)
 
     assert response.status_code == 422
+
+
+def test_cuenta_creada_puede_iniciar_sesion_con_su_correo(client) -> None:
+    _alta(client)
+
+    response = client.post(
+        "/auth/login", json={"email": "amartinez@uaemex.mx", "password": VALID_PASSWORD}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user"]["institutional_id"] == KNOWN_ACCOUNT

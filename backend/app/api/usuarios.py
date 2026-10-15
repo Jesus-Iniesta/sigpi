@@ -21,7 +21,8 @@ router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
 
 def get_directory_client() -> DirectoryClient:
-    # TODO(S3-03): devolver aquí el adaptador real de Microsoft 365.
+    # El directorio solo aporta los datos de la cuenta al darla de alta; el acceso
+    # lo valida SIGPI con sus propias credenciales (S3-03).
     return StubDirectoryClient()
 
 
@@ -39,6 +40,7 @@ async def create_user(
     try:
         return await service.create_user(
             institutional_id=payload.institutional_id,
+            password=payload.password,
             role=payload.role,
             unit_id=payload.unit_id,
             max_load=payload.max_load,

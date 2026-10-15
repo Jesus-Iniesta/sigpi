@@ -21,6 +21,8 @@ class User(Base):
     institutional_id: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(180))
     email: Mapped[str] = mapped_column(String(254), unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255))
+    failed_login_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
     user_type: Mapped[UserType] = mapped_column(String(30), default=UserType.ADMINISTRATIVE)
     support_level: Mapped[SupportLevel | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -4,6 +4,7 @@ import uuid
 from typing import Any
 
 from app.core.permissions import RoleName
+from app.core.security import hash_password
 from app.domain.directory import DirectoryClient
 from app.models.identity import User
 from app.repositories.usuario_repository import UsuarioRepository
@@ -30,6 +31,7 @@ class UsuarioService:
         self,
         *,
         institutional_id: str,
+        password: str,
         role: RoleName,
         unit_id: uuid.UUID | None = None,
         max_load: int | None = None,
@@ -52,6 +54,7 @@ class UsuarioService:
             institutional_id=profile.institutional_id,
             full_name=profile.full_name,
             email=profile.email,
+            password_hash=hash_password(password),
             user_type=profile.user_type,
             unit_id=unit_id,
             max_load=max_load,
