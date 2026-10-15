@@ -71,4 +71,3 @@ def decode_access_token(token: str) -> TokenPayload:
         return TokenPayload(user_id=uuid.UUID(claims["sub"]), roles=tuple(claims.get("roles", [])))
     except (JWTError, KeyError, ValueError) as exc:
         raise InvalidTokenError("Token inválido o expirado.") from exc
-    
