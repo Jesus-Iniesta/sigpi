@@ -4,6 +4,7 @@ from enum import StrEnum
 class Permission(StrEnum):
     REQUESTS_READ = "requests.read"
     REQUESTS_CREATE = "requests.create"
+    REQUESTS_CREATE_ASSISTED = "requests.create_assisted"
     REQUESTS_UPDATE = "requests.update"
     REQUESTS_ASSIGN = "requests.assign"
     REQUESTS_CLOSE = "requests.close"
@@ -39,6 +40,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
     RoleName.SERVICE_MANAGER: frozenset(
         {
             Permission.REQUESTS_READ,
+            Permission.REQUESTS_CREATE_ASSISTED,
             Permission.REQUESTS_UPDATE,
             Permission.REQUESTS_ASSIGN,
             Permission.REQUESTS_CLOSE,
@@ -60,6 +62,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
     RoleName.SUPPORT_AGENT: frozenset(
         {
             Permission.REQUESTS_READ,
+            Permission.REQUESTS_CREATE_ASSISTED,
             Permission.REQUESTS_UPDATE,
             Permission.REQUESTS_ASSIGN,
             Permission.REQUESTS_CLOSE,
