@@ -1,13 +1,20 @@
-"""Use cases for registering service requests (HU-01.1)."""
+"""Use cases for registering service requests (HU-01.1, HU-01.3)."""
+
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.catalog import Categoria
-from app.models.enums import RequestStatus
+from app.models.enums import RequestChannel, RequestStatus
 from app.models.identity import User
-from app.models.request import Request
+from app.models.request import Request, RequestLog
 from app.repositories.solicitud_repository import SolicitudRepository
-from app.schemas.request import RequestCreate
+from app.schemas.request import RequestAssistedCreate, RequestCreate
+
+_CHANNEL_LABELS = {
+    RequestChannel.PHONE: "por teléfono",
+    RequestChannel.IN_PERSON: "de forma presencial",
+}
 
 
 class SolicitudValidationError(ValueError):
@@ -20,6 +27,26 @@ class SolicitudService:
         self._session = session
 
     async def create_request(self, payload: RequestCreate) -> Request:
+        return await self._register(payload)
+
+    async def create_assisted_request(
+        self, payload: RequestAssistedCreate, registered_by_id: uuid.UUID
+    ) -> Request:
+        """Register a request received by phone or in person on behalf of a requester.
+
+        The technician who captures it is stored as the author of the first bitácora
+        entry, so the request and its origin are saved in a single transaction.
+        """
+        log = RequestLog(
+            author_id=registered_by_id,
+            previous_status=None,
+            new_status=RequestStatus.REGISTERED,
+            action=f"Solicitud registrada {_CHANNEL_LABELS[payload.channel]}",
+            notes="Registro asistido: el técnico capturó la solicitud en nombre del solicitante.",
+        )
+        return await self._register(payload, log)
+
+    async def _register(self, payload: RequestCreate, log: RequestLog | None = None) -> Request:
         requester = await self._session.get(User, payload.requester_id)
         if requester is None or not requester.is_active:
             raise SolicitudValidationError(
@@ -54,4 +81,6 @@ class SolicitudService:
             urgency=payload.urgency,
             impact=payload.impact,
         )
+        if log is not None:
+            request.logs.append(log)
         return await self._repository.add(request)

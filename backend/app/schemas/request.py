@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,6 +22,16 @@ class RequestCreate(BaseModel):
     channel: RequestChannel = RequestChannel.PORTAL
     urgency: int | None = Field(default=None, ge=1, le=3)
     impact: int | None = Field(default=None, ge=1, le=3)
+
+
+class RequestAssistedCreate(RequestCreate):
+    """Fields accepted when a technician registers a request on behalf of a requester (HU-01.3).
+
+    Same data as `RequestCreate`, but the origin channel is mandatory and can only be
+    `phone` or `in_person`: the portal channel is reserved for requesters themselves.
+    """
+
+    channel: Literal[RequestChannel.PHONE, RequestChannel.IN_PERSON]
 
 
 class RequestUpdate(BaseModel):
