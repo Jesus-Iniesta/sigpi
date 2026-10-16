@@ -1,11 +1,14 @@
-"""HTTP endpoints for service requests (HU-01.1)."""
+"""HTTP endpoints for service requests (HU-01.1, HU-01.3)."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import require_permission
+from app.core.permissions import Permission
 from app.db.session import get_session
+from app.models.identity import User
 from app.repositories.solicitud_repository import SolicitudRepository
-from app.schemas.request import RequestCreate, RequestRead
+from app.schemas.request import RequestAssistedCreate, RequestCreate, RequestRead
 from app.services.solicitud_service import SolicitudService, SolicitudValidationError
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
@@ -24,6 +27,21 @@ async def create_request(
 ) -> RequestRead:
     try:
         result = await service.create_request(payload)
+        return RequestRead.model_validate(result)
+    except SolicitudValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+
+@router.post("/asistido", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
+async def create_assisted_request(
+    payload: RequestAssistedCreate,
+    technician: User = Depends(require_permission(Permission.REQUESTS_CREATE_ASSISTED)),
+    service: SolicitudService = Depends(get_solicitud_service),
+) -> RequestRead:
+    try:
+        result = await service.create_assisted_request(payload, registered_by_id=technician.id)
         return RequestRead.model_validate(result)
     except SolicitudValidationError as exc:
         raise HTTPException(
