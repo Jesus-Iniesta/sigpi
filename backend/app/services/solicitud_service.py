@@ -10,6 +10,7 @@ from app.models.identity import User
 from app.models.request import Request, RequestLog
 from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import RequestAssistedCreate, RequestCreate
+from app.services.prioridad_service import PrioridadInvalidaError, PrioridadService
 
 _CHANNEL_LABELS = {
     RequestChannel.PHONE: "por teléfono",
@@ -22,9 +23,15 @@ class SolicitudValidationError(ValueError):
 
 
 class SolicitudService:
-    def __init__(self, repository: SolicitudRepository, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        repository: SolicitudRepository,
+        session: AsyncSession,
+        prioridad: PrioridadService | None = None,
+    ) -> None:
         self._repository = repository
         self._session = session
+        self._prioridad = prioridad or PrioridadService()
 
     async def create_request(self, payload: RequestCreate) -> Request:
         return await self._register(payload)
@@ -81,6 +88,10 @@ class SolicitudService:
             urgency=payload.urgency,
             impact=payload.impact,
         )
+        try:
+            self._prioridad.aplicar(request)
+        except PrioridadInvalidaError as exc:
+            raise SolicitudValidationError(str(exc)) from exc
         if log is not None:
             request.logs.append(log)
         return await self._repository.add(request)
