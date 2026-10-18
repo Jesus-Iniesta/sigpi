@@ -1,4 +1,4 @@
-"""Reglas del estado «En espera» (HU-04.2).
+"""Reglas de estados de la solicitud: «En espera» (HU-04.2) y «Por verificar» (HU-01.3).
 
 El reloj del SLA solo se suspende mientras la solicitud espera algo ajeno al
 equipo de soporte (un insumo externo o información del solicitante). Estas
@@ -22,3 +22,14 @@ def puede_suspender(status: RequestStatus) -> bool:
 
 def puede_reanudar(status: RequestStatus) -> bool:
     return status == RequestStatus.WAITING
+
+
+def estado_inicial(solicitante_localizado: bool) -> RequestStatus:
+    """Estado con el que se registra una solicitud nueva.
+
+    Un solicitante no localizado no impide el registro: la solicitud queda
+    pendiente de verificación hasta que se confirme quién es.
+    """
+    if solicitante_localizado:
+        return RequestStatus.REGISTERED
+    return RequestStatus.PENDING_VERIFICATION
