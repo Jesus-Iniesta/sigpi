@@ -85,6 +85,9 @@ class RequestRead(BaseModel):
     urgency: int | None
     impact: int | None
     classification_confidence: float | None
+    diagnosis: str | None
+    solution: str | None
+    resolution_minutes: int | None
     first_response_at: datetime | None
     resolved_at: datetime | None
     closed_at: datetime | None
@@ -142,3 +145,20 @@ class RequestWaitCreate(BaseModel):
 
     reason: WaitReason
     detail: str | None = Field(default=None, min_length=1, max_length=500)
+
+
+class RequestDiagnosisCreate(BaseModel):
+    """Diagnóstico que registra el técnico mientras atiende la solicitud (HU-04.1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    diagnosis: str = Field(min_length=1)
+
+
+class RequestResolveCreate(BaseModel):
+    """Datos para resolver una solicitud: la solución aplicada y, si falta, el diagnóstico."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    solution: str = Field(min_length=1)
+    diagnosis: str | None = Field(default=None, min_length=1)
