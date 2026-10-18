@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
+import { SolicitudForm } from './solicitud-form'
 
 type Priority = 'P1' | 'P2' | 'P3' | 'P4'
 
@@ -55,6 +57,8 @@ const priorityStyles: Record<Priority, string> = {
 }
 
 export function RequestsPage() {
+  const [isFormOpen, setIsFormOpen] = useState(false)
+
   return (
     <div className="space-y-8">
       <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -69,7 +73,7 @@ export function RequestsPage() {
             Consulta y prioriza las solicitudes institucionales.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsFormOpen(true)}>
           <Plus size={17} />
           Nueva solicitud
         </Button>
@@ -131,6 +135,7 @@ export function RequestsPage() {
           </table>
         </div>
       </section>
+      {isFormOpen && <SolicitudForm onClose={() => setIsFormOpen(false)} />}
     </div>
   )
 }
