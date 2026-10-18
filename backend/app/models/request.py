@@ -26,7 +26,8 @@ class Request(Base):
     __tablename__ = "service_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    requester_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    requester_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    requester_institutional_id: Mapped[str | None] = mapped_column(String(80), index=True)
     category_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("categories.id"))
     asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assets.id"))
     service_level_version_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -51,7 +52,7 @@ class Request(Base):
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    requester: Mapped["User"] = relationship()
+    requester: Mapped["User | None"] = relationship()
     category: Mapped["Categoria | None"] = relationship()
     asset: Mapped["Asset | None"] = relationship()
     service_level_version: Mapped["ServiceLevelVersion | None"] = relationship()
