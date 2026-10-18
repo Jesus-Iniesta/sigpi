@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import require_permission
+from app.api.dependencies import get_current_user, require_permission
 from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.identity import User
@@ -23,6 +23,7 @@ def get_solicitud_service(
 @router.post("", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
 async def create_request(
     payload: RequestCreate,
+    _current_user: User = Depends(get_current_user),
     service: SolicitudService = Depends(get_solicitud_service),
 ) -> RequestRead:
     try:

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401
+from app.api.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import app as fastapi_app
@@ -16,20 +17,18 @@ from app.models.enums import UserType
 from app.models.identity import User
 
 
-@pytest.fixture
-def request_client():
+def _create_engine_and_maker():
     engine = create_async_engine(
         "sqlite+aiosqlite://",
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    requester_id = uuid.uuid4()
-    category_id = uuid.uuid4()
+    return engine, maker
 
+
+def _seed_users(maker: async_sessionmaker, requester_id: uuid.UUID) -> None:
     async def prepare() -> None:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
         async with maker() as session:
             session.add(
                 User(
@@ -45,13 +44,65 @@ def request_client():
 
     asyncio.run(prepare())
 
-    async def override_session():
+
+def _override_session(maker: async_sessionmaker):
+    async def override():
         async with maker() as session:
             yield session
 
-    fastapi_app.dependency_overrides[get_session] = override_session
+    return override
+
+
+def _override_get_current_user(maker: async_sessionmaker, user_id: uuid.UUID):
+    async def override() -> User:
+        async with maker() as session:
+            return await session.get(User, user_id)
+
+    return override
+
+
+@pytest.fixture
+def request_client():
+    """Cliente autenticado: el solicitante de prueba inicia sesión."""
+    engine, maker = _create_engine_and_maker()
+    requester_id = uuid.uuid4()
+    category_id = uuid.uuid4()
+
+    async def prepare() -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    asyncio.run(prepare())
+    _seed_users(maker, requester_id)
+
+    fastapi_app.dependency_overrides[get_session] = _override_session(maker)
+    fastapi_app.dependency_overrides[get_current_user] = _override_get_current_user(
+        maker, requester_id
+    )
     try:
         yield TestClient(fastapi_app), requester_id, category_id
+    finally:
+        fastapi_app.dependency_overrides.clear()
+        asyncio.run(engine.dispose())
+
+
+@pytest.fixture
+def unauthenticated_client():
+    """Cliente sin token: simula una petición sin credenciales (AC3)."""
+    engine, maker = _create_engine_and_maker()
+    requester_id = uuid.uuid4()
+
+    async def prepare() -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    asyncio.run(prepare())
+    _seed_users(maker, requester_id)
+
+    fastapi_app.dependency_overrides[get_session] = _override_session(maker)
+    # No se overridea get_current_user: sin token se espera 401.
+    try:
+        yield TestClient(fastapi_app), requester_id
     finally:
         fastapi_app.dependency_overrides.clear()
         asyncio.run(engine.dispose())
@@ -69,6 +120,9 @@ def _payload(requester_id: uuid.UUID, **overrides):
     }
     payload.update(overrides)
     return payload
+
+
+# --- AC1: alta válida ---------------------------------------------------------
 
 
 def test_alta_asigna_folio_y_estado_inicial(request_client) -> None:
@@ -95,6 +149,22 @@ def test_folio_es_consecutivo_y_persiste_entre_altas(request_client) -> None:
     assert second.json()["folio"] == "SIG-0002"
 
 
+def test_alta_con_urgencia_e_impacto_distintos(request_client) -> None:
+    client, requester_id, _category_id = request_client
+
+    response = client.post(
+        "/solicitudes", json=_payload(requester_id, urgency=3, impact=1)
+    )
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["urgency"] == 3
+    assert body["impact"] == 1
+
+
+# --- AC2: campos incompletos --------------------------------------------------
+
+
 def test_rn02_rechaza_solicitante_inexistente_o_inactivo(request_client) -> None:
     client, _requester_id, _category_id = request_client
 
@@ -108,7 +178,6 @@ def test_rn02_rechaza_solicitante_inactivo(request_client) -> None:
     client, _requester_id, _category_id = request_client
     client_id = uuid.uuid4()
 
-    # La prueba crea un usuario inactivo a través del mismo esquema persistente.
     session_override = fastapi_app.dependency_overrides[get_session]
 
     async def add_inactive():
@@ -190,3 +259,34 @@ def test_alta_rechaza_la_edicion_directa_de_la_prioridad(request_client) -> None
     response = client.post("/solicitudes", json=_payload(requester_id, priority="P1"))
 
     assert response.status_code == 422
+@pytest.mark.parametrize("invalid_value", [0, 4])
+def test_alta_rechaza_urgencia_fuera_de_rango(request_client, invalid_value) -> None:
+    client, requester_id, _category_id = request_client
+
+    response = client.post(
+        "/solicitudes", json=_payload(requester_id, urgency=invalid_value)
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("invalid_value", [0, 4])
+def test_alta_rechaza_impacto_fuera_de_rango(request_client, invalid_value) -> None:
+    client, requester_id, _category_id = request_client
+
+    response = client.post(
+        "/solicitudes", json=_payload(requester_id, impact=invalid_value)
+    )
+
+    assert response.status_code == 422
+
+
+# --- AC3: credenciales inválidas ---------------------------------------------
+
+
+def test_alta_sin_autenticacion_responde_401(unauthenticated_client) -> None:
+    client, requester_id = unauthenticated_client
+
+    response = client.post("/solicitudes", json=_payload(requester_id))
+
+    assert response.status_code == 401

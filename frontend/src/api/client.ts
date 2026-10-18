@@ -13,10 +13,10 @@ function formatApiDetail(detail: unknown): string | undefined {
         if (typeof item === 'string') return item
         if (item && typeof item === 'object') {
           const error = item as ValidationError
-          const location = error.loc?.filter((part) => part !== 'body').join('.')
-          return location && error.msg
-            ? `${location}: ${error.msg}`
-            : error.msg
+          const location = error.loc
+            ?.filter((part) => part !== 'body')
+            .join('.')
+          return location && error.msg ? `${location}: ${error.msg}` : error.msg
         }
         return undefined
       })
@@ -39,6 +39,7 @@ export async function apiFetch<T>(
   const response = await fetch(`${apiUrl}${path}`, {
     ...init,
     headers,
+    credentials: 'include',
   })
 
   if (!response.ok) {
