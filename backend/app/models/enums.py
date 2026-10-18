@@ -32,6 +32,11 @@ class RequestStatus(StrEnum):
     CLOSED_UNVERIFIED = "closed_unverified"
 
 
+class WaitReason(StrEnum):
+    EXTERNAL_INPUT = "external_input"
+    USER_INFORMATION = "user_information"
+
+
 class Priority(StrEnum):
     P1 = "P1"
     P2 = "P2"
