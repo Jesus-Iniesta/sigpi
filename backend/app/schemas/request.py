@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import Priority, RequestChannel, RequestStatus, WaitReason
 
@@ -12,7 +12,8 @@ class RequestCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    requester_id: uuid.UUID
+    requester_id: uuid.UUID | None = None
+    requester_institutional_id: str | None = Field(default=None, min_length=1, max_length=80)
     category_id: uuid.UUID | None = None
     asset_id: uuid.UUID | None = None
     related_request_id: uuid.UUID | None = None
@@ -22,6 +23,19 @@ class RequestCreate(BaseModel):
     channel: RequestChannel = RequestChannel.PORTAL
     urgency: int | None = Field(default=None, ge=1, le=3)
     impact: int | None = Field(default=None, ge=1, le=3)
+
+    @field_validator("requester_institutional_id")
+    @classmethod
+    def _strip_institutional_id(cls, value: str | None) -> str | None:
+        return value.strip() if value else value
+
+    @model_validator(mode="after")
+    def _exactly_one_requester_reference(self) -> "RequestCreate":
+        if (self.requester_id is None) == (self.requester_institutional_id is None):
+            raise ValueError(
+                "indica requester_id o requester_institutional_id, pero no ambos ni ninguno"
+            )
+        return self
 
 
 class RequestAssistedCreate(RequestCreate):
@@ -55,7 +69,8 @@ class RequestRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    requester_id: uuid.UUID
+    requester_id: uuid.UUID | None
+    requester_institutional_id: str | None
     category_id: uuid.UUID | None
     asset_id: uuid.UUID | None
     service_level_version_id: uuid.UUID | None
