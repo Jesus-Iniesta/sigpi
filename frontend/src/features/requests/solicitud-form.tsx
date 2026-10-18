@@ -24,8 +24,7 @@ function validate(
 ): FormErrors {
   const errors: FormErrors = {}
   if (!title.trim()) errors.title = 'El título es obligatorio.'
-  if (!description.trim())
-    errors.description = 'La descripción es obligatoria.'
+  if (!description.trim()) errors.description = 'La descripción es obligatoria.'
   if (!physicalLocation.trim())
     errors.physical_location = 'La ubicación física es obligatoria.'
   return errors
@@ -84,9 +83,7 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-[#edf2f1] px-6 py-4">
-          <h2 className="text-lg font-bold text-[#17212b]">
-            Nueva solicitud
-          </h2>
+          <h2 className="text-lg font-bold text-[#17212b]">Nueva solicitud</h2>
           <button
             type="button"
             onClick={onClose}
@@ -97,7 +94,11 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5" noValidate>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 px-6 py-5"
+          noValidate
+        >
           <div>
             <label
               htmlFor="solicitud-title"
@@ -144,9 +145,7 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
               )}
             />
             {errors.description && (
-              <p className="mt-1 text-xs text-red-600">
-                {errors.description}
-              </p>
+              <p className="mt-1 text-xs text-red-600">{errors.description}</p>
             )}
           </div>
 
