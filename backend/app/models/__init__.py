@@ -10,7 +10,13 @@ from app.models.knowledge import KnowledgeArticle, KnowledgeSearch
 from app.models.maintenance import MaintenanceAct, MaintenanceOrder
 from app.models.notification import Notification, NotificationTemplate
 from app.models.organization import OrganizationalUnit
-from app.models.request import Request, RequestAssignment, RequestEscalation, RequestLog
+from app.models.request import (
+    Request,
+    RequestAssignment,
+    RequestEscalation,
+    RequestLog,
+    RequestSlaPause,
+)
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 
 __all__ = [
@@ -38,6 +44,7 @@ __all__ = [
     "RequestAssignment",
     "RequestEscalation",
     "RequestLog",
+    "RequestSlaPause",
     "Role",
     "ServiceLevelAgreement",
     "ServiceLevelVersion",
