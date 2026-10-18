@@ -12,6 +12,7 @@ from app.models.enums import (
     Priority,
     RequestChannel,
     RequestStatus,
+    WaitReason,
 )
 
 if TYPE_CHECKING:
@@ -64,6 +65,11 @@ class Request(Base):
     escalations: Mapped[list["RequestEscalation"]] = relationship(
         back_populates="request", cascade="all, delete-orphan"
     )
+    sla_pauses: Mapped[list["RequestSlaPause"]] = relationship(
+        back_populates="request",
+        cascade="all, delete-orphan",
+        order_by="RequestSlaPause.started_at",
+    )
 
 
 class RequestLog(Base):
@@ -115,3 +121,20 @@ class RequestEscalation(Base):
     request: Mapped[Request] = relationship(back_populates="escalations")
     requested_by: Mapped["User"] = relationship(foreign_keys=[requested_by_id])
     approved_by: Mapped["User | None"] = relationship(foreign_keys=[approved_by_id])
+
+
+class RequestSlaPause(Base):
+    """Periodo en que el reloj del SLA estuvo suspendido (estado «En espera», HU-04.2)."""
+
+    __tablename__ = "request_sla_pauses"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("service_requests.id"), index=True)
+    reason: Mapped[WaitReason] = mapped_column(String(30))
+    detail: Mapped[str | None] = mapped_column(Text)
+    started_by_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    ended_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    request: Mapped[Request] = relationship(back_populates="sla_pauses")
