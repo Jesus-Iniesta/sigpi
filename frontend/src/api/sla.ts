@@ -8,14 +8,14 @@ import type {
   SlaVersion,
 } from '@/api/types'
 
-export const priorities = ['P1', 'P2', 'P3', 'P4'] as const satisfies readonly Priority[]
+export const priorities = [
+  'P1',
+  'P2',
+  'P3',
+  'P4',
+] as const satisfies readonly Priority[]
 
-export type {
-  EffectiveSla,
-  Priority,
-  SlaAgreement,
-  SlaVersion,
-}
+export type { EffectiveSla, Priority, SlaAgreement, SlaVersion }
 
 export type SlaAgreementInput = CreateSlaAgreementInput
 export type SlaPriorityTimes = CreateSlaVersionInput['times'][number]
