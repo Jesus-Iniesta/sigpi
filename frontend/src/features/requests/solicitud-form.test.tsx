@@ -54,10 +54,7 @@ function renderForm(onClose = vi.fn()) {
 }
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(
-    screen.getByLabelText('Título'),
-    'No hay conexión a la red',
-  )
+  await user.type(screen.getByLabelText('Título'), 'No hay conexión a la red')
   await user.type(
     screen.getByLabelText('Descripción'),
     'El laboratorio perdió conectividad.',
@@ -199,7 +196,9 @@ describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
     await user.type(screen.getByLabelText('Título'), 'Prueba')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
 
-    expect(screen.queryByText('El título es obligatorio.')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('El título es obligatorio.'),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByText('La descripción es obligatoria.'),
     ).toBeInTheDocument()
@@ -245,8 +244,6 @@ describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
     expect(
       await screen.findByText('El solicitante no está activo.'),
     ).toBeInTheDocument()
-    expect(
-      screen.queryByText('Tu sesión ha expirado.'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Tu sesión ha expirado.')).not.toBeInTheDocument()
   })
 })
