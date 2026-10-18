@@ -7,8 +7,8 @@ from app.api.routers.sla import router as sla_router
 from app.api.routers.solicitudes import router as solicitudes_router
 from app.api.usuarios import router as usuarios_router
 from app.core.config import settings
-from app.core.exceptions import register_exception_handlers 
-from app.core.logging import configure_logging, REQUEST_ID_HEADER, RequestContextMiddleware
+from app.core.exceptions import register_exception_handlers
+from app.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
 
 configure_logging(settings.log_level)
 
