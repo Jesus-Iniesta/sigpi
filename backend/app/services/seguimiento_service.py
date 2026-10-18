@@ -134,6 +134,39 @@ class SeguimientoService:
         await self._session.commit()
         return await self._load(request_id)
 
+    async def confirmar(
+        self,
+        request_id: uuid.UUID,
+        author_id: uuid.UUID,
+        notes: str | None = None,
+        ahora: datetime | None = None,
+    ) -> Request:
+        """Confirma una solicitud resuelta y la cierra.
+
+        El solicitante (o un usuario con rol adecuado) valida que la solución
+        aplicada es satisfactoria. La solicitud pasa a «Cerrada».
+        """
+        request = await self._load(request_id)
+        if request.status != RequestStatus.RESOLVED:
+            raise EstadoInvalidoError(
+                f"una solicitud en estado {request.status} no puede confirmarse"
+            )
+        corte = ahora or _ahora()
+        previous = request.status
+        request.status = RequestStatus.CLOSED
+        request.closed_at = corte
+        request.logs.append(
+            RequestLog(
+                author_id=author_id,
+                previous_status=previous,
+                new_status=RequestStatus.CLOSED,
+                action="Solicitud confirmada",
+                notes=notes,
+            )
+        )
+        await self._session.commit()
+        return await self._load(request_id)
+
     async def listar_bitacora(self, request_id: uuid.UUID) -> list[RequestLog]:
         """Entradas de la bitácora de una solicitud, de la más antigua a la más reciente."""
         if await self._session.get(Request, request_id) is None:

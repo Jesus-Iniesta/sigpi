@@ -10,6 +10,7 @@ from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.identity import User
 from app.schemas.request import (
+    RequestConfirmCreate,
     RequestDiagnosisCreate,
     RequestLogRead,
     RequestRead,
@@ -62,13 +63,29 @@ async def start_request(
 async def resolve_request(
     request_id: uuid.UUID,
     payload: RequestResolveCreate,
-    technician: User = Depends(require_permission(Permission.REQUESTS_UPDATE)),
+    technician: User = Depends(require_permission(Permission.REQUESTS_RESOLVE)),
     service: SeguimientoService = Depends(get_seguimiento_service),
 ) -> RequestRead:
     try:
         result = await service.resolver(
             request_id, technician.id, payload.solution, diagnosis=payload.diagnosis
         )
+    except SolicitudNoEncontradaError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except EstadoInvalidoError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return RequestRead.model_validate(result)
+
+
+@router.post("/{request_id}/confirmar", response_model=RequestRead)
+async def confirm_request(
+    request_id: uuid.UUID,
+    payload: RequestConfirmCreate,
+    technician: User = Depends(require_permission(Permission.REQUESTS_CLOSE)),
+    service: SeguimientoService = Depends(get_seguimiento_service),
+) -> RequestRead:
+    try:
+        result = await service.confirmar(request_id, technician.id, payload.notes)
     except SolicitudNoEncontradaError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except EstadoInvalidoError as exc:

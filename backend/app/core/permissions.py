@@ -7,6 +7,7 @@ class Permission(StrEnum):
     REQUESTS_CREATE_ASSISTED = "requests.create_assisted"
     REQUESTS_UPDATE = "requests.update"
     REQUESTS_ASSIGN = "requests.assign"
+    REQUESTS_RESOLVE = "requests.resolve"
     REQUESTS_CLOSE = "requests.close"
     CLASSIFICATION_READ = "classification.read"
     CLASSIFICATION_REVIEW = "classification.review"
@@ -43,6 +44,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.REQUESTS_CREATE_ASSISTED,
             Permission.REQUESTS_UPDATE,
             Permission.REQUESTS_ASSIGN,
+            Permission.REQUESTS_RESOLVE,
             Permission.REQUESTS_CLOSE,
             Permission.CLASSIFICATION_READ,
             Permission.CLASSIFICATION_REVIEW,
@@ -65,6 +67,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.REQUESTS_CREATE_ASSISTED,
             Permission.REQUESTS_UPDATE,
             Permission.REQUESTS_ASSIGN,
+            Permission.REQUESTS_RESOLVE,
             Permission.REQUESTS_CLOSE,
             Permission.CLASSIFICATION_READ,
             Permission.KNOWLEDGE_READ,
