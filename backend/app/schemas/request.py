@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import Priority, RequestChannel, RequestStatus
+from app.models.enums import Priority, RequestChannel, RequestStatus, WaitReason
 
 
 class RequestCreate(BaseModel):
@@ -118,3 +118,12 @@ class RequestLogRead(BaseModel):
     action: str
     notes: str | None
     created_at: datetime
+
+
+class RequestWaitCreate(BaseModel):
+    """Datos para pasar una solicitud a «En espera» y suspender el reloj del SLA."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reason: WaitReason
+    detail: str | None = Field(default=None, min_length=1, max_length=500)
