@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     sla_warning_threshold: float = 0.80
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    # Registro de eventos (S3-01): DEBUG, INFO, WARNING o ERROR.
+    log_level: str = "INFO" 
+
     # Autenticación (S3-03). Define JWT_SECRET_KEY en tu .env; el valor por defecto
     # solo sirve para desarrollo local y nunca debe usarse en producción.
     jwt_secret_key: str = "dev-only-change-me"
