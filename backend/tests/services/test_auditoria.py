@@ -17,7 +17,11 @@ from app.models.auditoria import Auditoria
 async def audit_connection() -> AsyncGenerator[AsyncConnection]:
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
     try:
-        async with engine.connect() as connection:
+        try:
+            connection = await engine.connect()
+        except OSError as exc:
+            pytest.skip(f"PostgreSQL no está disponible para la prueba: {exc}")
+        async with connection:
             try:
                 await connection.execute(text("SELECT 1 FROM audit_logs LIMIT 1"))
             except OperationalError as exc:

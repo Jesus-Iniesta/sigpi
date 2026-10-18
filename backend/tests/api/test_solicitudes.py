@@ -227,6 +227,38 @@ def test_alta_rechaza_datos_obligatorios_invalidos(request_client, invalid_field
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("urgency", "impact", "esperada"),
+    [(3, 3, "P1"), (2, 2, "P2"), (1, 2, "P3"), (1, 1, "P4")],
+)
+def test_alta_calcula_la_prioridad_con_la_matriz(request_client, urgency, impact, esperada) -> None:
+    client, requester_id, _category_id = request_client
+
+    response = client.post(
+        "/solicitudes", json=_payload(requester_id, urgency=urgency, impact=impact)
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["priority"] == esperada
+
+
+def test_alta_sin_urgencia_ni_impacto_deja_la_prioridad_vacia(request_client) -> None:
+    client, requester_id, _category_id = request_client
+    payload = _payload(requester_id)
+    del payload["urgency"], payload["impact"]
+
+    response = client.post("/solicitudes", json=payload)
+
+    assert response.status_code == 201, response.text
+    assert response.json()["priority"] is None
+
+
+def test_alta_rechaza_la_edicion_directa_de_la_prioridad(request_client) -> None:
+    client, requester_id, _category_id = request_client
+
+    response = client.post("/solicitudes", json=_payload(requester_id, priority="P1"))
+
+    assert response.status_code == 422
 @pytest.mark.parametrize("invalid_value", [0, 4])
 def test_alta_rechaza_urgencia_fuera_de_rango(request_client, invalid_value) -> None:
     client, requester_id, _category_id = request_client
