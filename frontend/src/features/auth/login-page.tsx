@@ -39,7 +39,9 @@ export function LoginPage() {
           <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#e6b85c]">
             <Activity size={32} strokeWidth={2.5} className="text-[#123b3a]" />
           </div>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-white">SIGPI</h1>
+          <h1 className="mt-6 text-4xl font-bold tracking-tight text-white">
+            SIGPI
+          </h1>
           <p className="mt-3 text-lg text-white/60">
             Sistema de Gestión de Peticiones Institucional
           </p>
@@ -54,7 +56,11 @@ export function LoginPage() {
         <div className="w-full max-w-sm px-8">
           <div className="mb-8 lg:hidden">
             <div className="grid size-12 place-items-center rounded-xl bg-[#e6b85c]">
-              <Activity size={24} strokeWidth={2.5} className="text-[#123b3a]" />
+              <Activity
+                size={24}
+                strokeWidth={2.5}
+                className="text-[#123b3a]"
+              />
             </div>
             <h1 className="mt-4 text-2xl font-bold text-[#17212b]">SIGPI</h1>
           </div>
@@ -137,10 +143,7 @@ export function LoginPage() {
             <Button
               type="submit"
               disabled={isSubmitting || !email || !password}
-              className={cn(
-                'w-full py-2.5',
-                isSubmitting && 'opacity-70',
-              )}
+              className={cn('w-full py-2.5', isSubmitting && 'opacity-70')}
             >
               {isSubmitting ? 'Ingresando…' : 'Ingresar'}
             </Button>
