@@ -1,6 +1,6 @@
 """Dependencias de FastAPI para identificar al usuario y exigir permisos (S3-03)."""
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,12 +21,14 @@ _UNAUTHENTICATED = HTTPException(
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    access_token_cookie: str | None = Cookie(default=None, alias="access_token"),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    if credentials is None:
+    token = credentials.credentials if credentials else access_token_cookie
+    if token is None:
         raise _UNAUTHENTICATED
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
     except InvalidTokenError as exc:
         raise _UNAUTHENTICATED from exc
     user = await AuthRepository(session).get_by_id(payload.user_id)

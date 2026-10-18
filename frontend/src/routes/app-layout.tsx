@@ -3,12 +3,14 @@ import {
   ClipboardList,
   BookOpen,
   LayoutDashboard,
+  LogOut,
   Menu,
-  Settings2,
   Timer,
   Users,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '@/features/auth/auth-context'
 import { cn } from '@/shared/lib/utils'
 
 const navigation = [
@@ -19,7 +21,28 @@ const navigation = [
   { label: 'SLA', to: '/sla', icon: Timer },
 ]
 
+function getInitials(fullName: string): string {
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
 export function AppLayout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
+  }
+
+  const displayName = user?.full_name ?? 'Usuario'
+  const displayEmail = user?.email ?? ''
+  const initials = user ? getInitials(displayName) : 'US'
+
   return (
     <div className="min-h-screen bg-[#f5f7f8] text-[#17212b]">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[#dce6e4] bg-[#123b3a] text-white lg:flex lg:flex-col">
@@ -55,16 +78,22 @@ export function AppLayout() {
         </nav>
         <div className="border-t border-white/10 p-5">
           <div className="flex items-center gap-3 rounded-lg bg-white/5 p-3">
-            <div className="grid size-8 place-items-center rounded-full bg-[#e6b85c] text-xs font-bold text-[#123b3a]">
-              AD
+            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e6b85c] text-xs font-bold text-[#123b3a]">
+              {initials}
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Administrador</p>
-              <p className="truncate text-xs text-white/45">
-                Control operativo
-              </p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{displayName}</p>
+              <p className="truncate text-xs text-white/45">{displayEmail}</p>
             </div>
-            <Settings2 size={16} className="ml-auto text-white/45" />
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="shrink-0 rounded-md p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
@@ -82,7 +111,7 @@ export function AppLayout() {
               Ciclo operativo 2026
             </span>
             <div className="grid size-9 place-items-center rounded-full bg-[#d9eee9] text-xs font-bold text-[#0f766e]">
-              AD
+              {initials}
             </div>
           </div>
         </header>
