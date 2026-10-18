@@ -21,6 +21,7 @@ class RequestChannel(StrEnum):
 
 class RequestStatus(StrEnum):
     REGISTERED = "registered"
+    PENDING_VERIFICATION = "pending_verification"
     CLASSIFIED = "classified"
     PENDING_REVIEW = "pending_review"
     ASSIGNED = "assigned"
