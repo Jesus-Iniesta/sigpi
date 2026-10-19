@@ -21,6 +21,7 @@ export type ShiftInput = ApiSchemas['ShiftCreate']
 export type Request = ApiSchemas['RequestRead']
 export type CreateRequestInput = ApiSchemas['RequestCreate']
 export type Priority = ApiSchemas['Priority']
+export type WaitReason = 'external_input' | 'user_information'
 export type SlaAgreement = ApiSchemas['SlaAgreementRead']
 export type CreateSlaAgreementInput = ApiSchemas['SlaAgreementCreate']
 export type SlaVersion = ApiSchemas['SlaVersionRead']
