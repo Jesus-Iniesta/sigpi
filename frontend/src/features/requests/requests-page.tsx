@@ -2,11 +2,15 @@ import { useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { SolicitudForm } from './solicitud-form'
+import { EsperaDialog } from '@/features/requests/components/EsperaDialog'
+import { putRequestOnHold } from '@/api/solicitudes'
+import type { WaitReason } from '@/api/types'
 
 type Priority = 'P1' | 'P2' | 'P3' | 'P4'
 
 type RequestRow = {
   id: string
+  folio: string
   title: string
   area: string
   priority: Priority
@@ -17,6 +21,7 @@ type RequestRow = {
 const requests: RequestRow[] = [
   {
     id: 'SIG-024',
+    folio: 'SIG-024',
     title: 'Acceso a plataforma academica',
     area: 'Tecnologia',
     priority: 'P1',
@@ -25,6 +30,7 @@ const requests: RequestRow[] = [
   },
   {
     id: 'SIG-023',
+    folio: 'SIG-023',
     title: 'Mantenimiento de laboratorio',
     area: 'Infraestructura',
     priority: 'P2',
@@ -33,6 +39,7 @@ const requests: RequestRow[] = [
   },
   {
     id: 'SIG-022',
+    folio: 'SIG-022',
     title: 'Actualizacion de catalogo',
     area: 'Administracion',
     priority: 'P3',
@@ -41,6 +48,7 @@ const requests: RequestRow[] = [
   },
   {
     id: 'SIG-021',
+    folio: 'SIG-021',
     title: 'Revision de permisos',
     area: 'Recursos humanos',
     priority: 'P4',
@@ -58,6 +66,24 @@ const priorityStyles: Record<Priority, string> = {
 
 export function RequestsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [openEspera, setOpenEspera] = useState(false)
+  const [folioSeleccionado, setFolioSeleccionado] = useState<string | null>(
+    null,
+  )
+
+  const handleEspera = async (
+    folio: string,
+    reason: WaitReason,
+    detail: string | null,
+  ) => {
+    try {
+      await putRequestOnHold(folio, reason, detail)
+      setOpenEspera(false)
+      setFolioSeleccionado(null)
+    } catch {
+      // El error se maneja dentro del componente EsperaDialog vía onConfirm
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -86,7 +112,7 @@ export function RequestsPage() {
               className="absolute top-1/2 left-3 -translate-y-1/2 text-[#87959c]"
             />
             <input
-              className="h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] pr-3 pl-9 text-sm outline-none placeholder:text-[#a0adb2] focus:border-[#0f766e]"
+              className="h-10 w-full rounded-lg border border-[#d7e0df] bg-[#fafcfc] pr-3 pl-9 text-sm outline-none placeholder:text-[#a0adb2] focus:border-[#0f766e]"
               placeholder="Buscar solicitudes..."
             />
           </div>
@@ -104,6 +130,7 @@ export function RequestsPage() {
                 <th className="px-5 py-3 font-semibold">Prioridad</th>
                 <th className="px-5 py-3 font-semibold">Estado</th>
                 <th className="px-5 py-3 font-semibold">Actualizada</th>
+                <th className="px-5 py-3 font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#edf2f1]">
@@ -114,7 +141,7 @@ export function RequestsPage() {
                       {request.title}
                     </p>
                     <p className="mt-1 font-mono text-xs text-[#87959c]">
-                      {request.id}
+                      {request.folio}
                     </p>
                   </td>
                   <td className="px-5 py-4 text-[#52616b]">{request.area}</td>
@@ -129,6 +156,18 @@ export function RequestsPage() {
                   <td className="px-5 py-4 text-[#87959c]">
                     {request.updated}
                   </td>
+                  <td className="px-5 py-4">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setFolioSeleccionado(request.folio)
+                        setOpenEspera(true)
+                      }}
+                    >
+                      Marcar en espera
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -136,6 +175,17 @@ export function RequestsPage() {
         </div>
       </section>
       {isFormOpen && <SolicitudForm onClose={() => setIsFormOpen(false)} />}
+
+      {openEspera && folioSeleccionado && (
+        <EsperaDialog
+          open={openEspera}
+          onClose={() => setOpenEspera(false)}
+          folio={folioSeleccionado}
+          onConfirm={(reason, detail) =>
+            handleEspera(folioSeleccionado!, reason, detail)
+          }
+        />
+      )}
     </div>
   )
 }

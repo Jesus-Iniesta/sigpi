@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user, require_permission
 from app.core.permissions import Permission
 from app.db.session import get_session
+from app.integrations.directory_client import StubDirectoryClient
 from app.models.identity import User
 from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import (
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
 def get_solicitud_service(
     session: AsyncSession = Depends(get_session),
 ) -> SolicitudService:
-    return SolicitudService(SolicitudRepository(session), session)
+    return SolicitudService(SolicitudRepository(session), session, directory=StubDirectoryClient())
 
 
 def get_sla_clock_service(

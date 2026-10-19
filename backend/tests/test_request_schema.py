@@ -47,6 +47,7 @@ def test_request_read_supports_orm_attributes() -> None:
     request = RequestRead(
         id=uuid.uuid4(),
         requester_id=uuid.uuid4(),
+        requester_institutional_id=None,
         category_id=None,
         asset_id=None,
         service_level_version_id=None,
@@ -61,6 +62,9 @@ def test_request_read_supports_orm_attributes() -> None:
         urgency=None,
         impact=None,
         classification_confidence=None,
+        diagnosis=None,
+        solution=None,
+        resolution_minutes=None,
         first_response_at=None,
         resolved_at=None,
         closed_at=None,
