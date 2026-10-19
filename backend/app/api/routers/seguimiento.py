@@ -1,4 +1,4 @@
-"""HTTP endpoints de seguimiento y resolución de solicitudes (HU-04.1)."""
+"""HTTP endpoints de seguimiento y resolución de solicitudes (HU-04.1, detalle S3-13)."""
 
 import uuid
 
@@ -26,6 +26,20 @@ def get_seguimiento_service(
     session: AsyncSession = Depends(get_session),
 ) -> SeguimientoService:
     return SeguimientoService(session)
+
+
+@router.get("/{request_id}", response_model=RequestRead)
+async def get_request_detail(
+    request_id: uuid.UUID,
+    _technician: User = Depends(require_permission(Permission.REQUESTS_UPDATE)),
+    service: SeguimientoService = Depends(get_seguimiento_service),
+) -> RequestRead:
+    """Detalle de una solicitud para la pantalla de atención (S3-13, HU-04.1)."""
+    try:
+        result = await service.obtener(request_id)
+    except SolicitudNoEncontradaError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return RequestRead.model_validate(result)
 
 
 @router.post("/{request_id}/diagnostico", response_model=RequestRead)

@@ -42,6 +42,10 @@ class SeguimientoService:
             raise SolicitudNoEncontradaError(f"request {request_id} does not exist")
         return request
 
+    async def obtener(self, request_id: uuid.UUID) -> Request:
+        """Devuelve una solicitud con su diagnóstico y solución vigentes (detalle, S3-13)."""
+        return await self._load(request_id)
+
     async def registrar_diagnostico(
         self, request_id: uuid.UUID, author_id: uuid.UUID, diagnosis: str
     ) -> Request:
