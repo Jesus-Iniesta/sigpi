@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PhoneCall,
   Timer,
   Users,
 } from 'lucide-react'
@@ -13,12 +14,33 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
 import { cn } from '@/shared/lib/utils'
 
-const navigation = [
+const assistedRoles = ['administrator', 'service_manager', 'support_agent']
+
+type NavigationItem = {
+  label: string
+  to: string
+  icon: typeof LayoutDashboard
+  end?: boolean
+  roles?: string[]
+}
+
+const navigation: NavigationItem[] = [
   { label: 'Resumen', to: '/', icon: LayoutDashboard, end: true },
-  { label: 'Solicitudes', to: '/solicitudes', icon: ClipboardList },
+  { label: 'Solicitudes', to: '/solicitudes', icon: ClipboardList, end: true },
+  {
+    label: 'Registro Asistido',
+    to: '/solicitudes/asistido',
+    icon: PhoneCall,
+    roles: assistedRoles,
+  },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
   { label: 'SLA', to: '/sla', icon: Timer },
+  {
+    label: 'Solicitudes Asistidas',
+    to: '/solicitudes/asistido',
+    icon: PhoneCall,
+  },
 ]
 
 function getInitials(fullName: string): string {
@@ -42,6 +64,9 @@ export function AppLayout() {
   const displayName = user?.full_name ?? 'Usuario'
   const displayEmail = user?.email ?? ''
   const initials = user ? getInitials(displayName) : 'US'
+  const visibleNavigation = navigation.filter(
+    ({ roles }) => !roles || user?.roles.some((role) => roles.includes(role)),
+  )
 
   return (
     <div className="min-h-screen bg-[#f5f7f8] text-[#17212b]">
@@ -59,7 +84,7 @@ export function AppLayout() {
           <p className="px-4 pb-3 text-[10px] font-bold tracking-[0.18em] text-white/40 uppercase">
             Espacio de trabajo
           </p>
-          {navigation.map(({ label, to, icon: Icon, end }) => (
+          {visibleNavigation.map(({ label, to, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
