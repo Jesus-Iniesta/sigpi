@@ -25,6 +25,7 @@ export type CreateAssistedRequestInput = Omit<CreateRequestInput, 'channel'> & {
   channel: AssistedChannel
 }
 export type Priority = ApiSchemas['Priority']
+export type WaitReason = 'external_input' | 'user_information'
 export type SlaAgreement = ApiSchemas['SlaAgreementRead']
 export type CreateSlaAgreementInput = ApiSchemas['SlaAgreementCreate']
 export type SlaVersion = ApiSchemas['SlaVersionRead']

@@ -42,6 +42,10 @@ class SeguimientoService:
             raise SolicitudNoEncontradaError(f"request {request_id} does not exist")
         return request
 
+    async def obtener(self, request_id: uuid.UUID) -> Request:
+        """Devuelve una solicitud con su diagnóstico y solución vigentes (detalle, S3-13)."""
+        return await self._load(request_id)
+
     async def registrar_diagnostico(
         self, request_id: uuid.UUID, author_id: uuid.UUID, diagnosis: str
     ) -> Request:
@@ -129,6 +133,39 @@ class SeguimientoService:
                     f"Tiempo efectivo de resolución: {request.resolution_minutes} min.\n"
                     "Se solicita al solicitante confirmar la solución."
                 ),
+            )
+        )
+        await self._session.commit()
+        return await self._load(request_id)
+
+    async def confirmar(
+        self,
+        request_id: uuid.UUID,
+        author_id: uuid.UUID,
+        notes: str | None = None,
+        ahora: datetime | None = None,
+    ) -> Request:
+        """Confirma una solicitud resuelta y la cierra.
+
+        El solicitante (o un usuario con rol adecuado) valida que la solución
+        aplicada es satisfactoria. La solicitud pasa a «Cerrada».
+        """
+        request = await self._load(request_id)
+        if request.status != RequestStatus.RESOLVED:
+            raise EstadoInvalidoError(
+                f"una solicitud en estado {request.status} no puede confirmarse"
+            )
+        corte = ahora or _ahora()
+        previous = request.status
+        request.status = RequestStatus.CLOSED
+        request.closed_at = corte
+        request.logs.append(
+            RequestLog(
+                author_id=author_id,
+                previous_status=previous,
+                new_status=RequestStatus.CLOSED,
+                action="Solicitud confirmada",
+                notes=notes,
             )
         )
         await self._session.commit()

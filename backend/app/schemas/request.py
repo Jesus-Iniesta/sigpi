@@ -162,3 +162,11 @@ class RequestResolveCreate(BaseModel):
 
     solution: str = Field(min_length=1)
     diagnosis: str | None = Field(default=None, min_length=1)
+
+
+class RequestConfirmCreate(BaseModel):
+    """Datos para confirmar una solicitud resuelta: notas opcionales del solicitante."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    notes: str | None = Field(default=None, min_length=1, max_length=500)
