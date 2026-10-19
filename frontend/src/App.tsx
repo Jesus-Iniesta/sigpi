@@ -4,6 +4,7 @@ import { LoginPage } from '@/features/auth/login-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { RequestsPage } from '@/features/requests/requests-page'
+import { SolicitudDetallePage } from '@/features/requests/pages/SolicitudDetallePage'
 import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
 import { AppLayout } from '@/routes/app-layout'
@@ -16,6 +17,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="solicitudes" element={<RequestsPage />} />
+          <Route path="solicitudes/:id" element={<SolicitudDetallePage />} />
           <Route path="catalogo" element={<CatalogPage />} />
           <Route path="sla" element={<SlaPage />} />
           <Route element={<RequireAuth requiredRoles={['administrator']} />}>
