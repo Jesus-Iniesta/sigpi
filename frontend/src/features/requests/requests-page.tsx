@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
+import { SolicitudForm } from './solicitud-form'
 import { EsperaDialog } from '@/features/requests/components/EsperaDialog'
 import { putRequestOnHold } from '@/api/solicitudes'
 import type { WaitReason } from '@/api/types'
@@ -64,6 +65,7 @@ const priorityStyles: Record<Priority, string> = {
 }
 
 export function RequestsPage() {
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [openEspera, setOpenEspera] = useState(false)
   const [folioSeleccionado, setFolioSeleccionado] = useState<string | null>(
     null,
@@ -97,7 +99,7 @@ export function RequestsPage() {
             Consulta y prioriza las solicitudes institucionales.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsFormOpen(true)}>
           <Plus size={17} />
           Nueva solicitud
         </Button>
@@ -172,6 +174,7 @@ export function RequestsPage() {
           </table>
         </div>
       </section>
+      {isFormOpen && <SolicitudForm onClose={() => setIsFormOpen(false)} />}
 
       {openEspera && folioSeleccionado && (
         <EsperaDialog

@@ -68,7 +68,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText('Impacto'), '1')
 }
 
-describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
+describe('SolicitudForm: alta de solicitudes (S3-02 y S3-05, HU-01.1)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     getCategoriesMock.mockResolvedValue([category])
@@ -76,7 +76,7 @@ describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
 
   // --- AC1: alta válida ------------------------------------------------------
 
-  it('AC1: alta válida envía los datos correctos y cierra el formulario', async () => {
+  it('AC1: alta válida envía los datos correctos y muestra el acuse con el folio', async () => {
     createRequestMock.mockResolvedValue({
       id: 'req-1',
       requester_id: 'user-1',
@@ -117,7 +117,15 @@ describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
       urgency: 2,
       impact: 1,
     })
-    expect(onClose).toHaveBeenCalled()
+    // Acuse de folio: el formulario se reemplaza por la confirmación.
+    expect(await screen.findByText('SIG-0001')).toBeInTheDocument()
+    expect(
+      screen.getByText('Solicitud registrada correctamente'),
+    ).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('AC1: alta válida sin categoría ni urgencia envía null', async () => {
@@ -206,6 +214,40 @@ describe('SolicitudForm: alta de solicitudes (S3-05, HU-01.1)', () => {
       screen.getByText('La ubicación física es obligatoria.'),
     ).toBeInTheDocument()
     expect(createRequestMock).not.toHaveBeenCalled()
+  })
+
+  // --- S3-02: validación en línea --------------------------------------------
+
+  it('S3-02: valida un campo al salir de él, sin esperar al envío', async () => {
+    renderForm()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByLabelText('Título'))
+    await user.tab()
+
+    expect(
+      await screen.findByText('El título es obligatorio.'),
+    ).toBeInTheDocument()
+    // Los demás campos aún no se han tocado.
+    expect(
+      screen.queryByText('La descripción es obligatoria.'),
+    ).not.toBeInTheDocument()
+    expect(createRequestMock).not.toHaveBeenCalled()
+  })
+
+  it('S3-02: el error de un campo desaparece al corregirlo', async () => {
+    renderForm()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByLabelText('Ubicación física'))
+    await user.tab()
+    await screen.findByText('La ubicación física es obligatoria.')
+
+    await user.type(screen.getByLabelText('Ubicación física'), 'Edificio A')
+
+    expect(
+      screen.queryByText('La ubicación física es obligatoria.'),
+    ).not.toBeInTheDocument()
   })
 
   // --- AC3: credenciales inválidas -------------------------------------------
