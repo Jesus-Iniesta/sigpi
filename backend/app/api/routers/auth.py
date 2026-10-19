@@ -20,7 +20,7 @@ from app.services.auth_service import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE_NAME = "access_token"
-COOKIE_PATH = "/auth"
+COOKIE_PATH = "/"
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:

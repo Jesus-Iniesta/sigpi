@@ -1,0 +1,39 @@
+docker compose up --build -d
+docker compose exec backend alembic upgrade head
+docker compose exec backend python -m app.seeds all
+
+La primera vez tarda unos minutos. El segundo comando crea las tablas y el tercero carga el área y las categorías.
+
+
+1. En http://localhost:8000/docs abre POST /auth/login → Try it out y envía:
+   {"email": "amartinez@uaemex.mx", "password": "Prueba1234"}
+
+2. En la respuesta copia el valor de access_token, solo el texto largo, sin comillas.
+3. Arriba a la derecha de la página de Swagger pulsa el botón verde Authorize. Pega el token en el campo, pulsa Authorize y luego Close.
+4. Repite POST /solicitudes/asistido con el mismo cuerpo. Debe responder 201, con "status": "pending_verification".
+
+   {
+     "requester_institutional_id": "desconocido-999",
+     "title": "Sin acceso al correo",
+     "description": "No puede entrar a su buzón.",
+     "physical_location": "Edificio B",
+     "channel": "phone"
+   }
+
+
+5. Copia el id de la respuesta y abre http://localhost:4173/solicitudes/<ese-id>.
+
+Verificar desde el contenedor
+docker compose exec db psql -U sigpi -c "select id, folio from service_requests;"
+
+
+
+
+-----
+validar cuenta institucional
+s2-08 servicio de auditoría de cambios
+s2-09 Pruebas de inalterabilidad de la auditoría
+s2-11 (validar que no metan cosas raras en técnicos)
+sla (Salida como un contrato simulado pdf: descripción, acuerdo general con todos los usuarios
+para que no sean valores tan personalizados (revisar) (¿cambiar nombre a tickets (?))
+)
