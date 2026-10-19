@@ -20,6 +20,10 @@ export type SpecialtyInput = ApiSchemas['SpecialtyCreate']
 export type ShiftInput = ApiSchemas['ShiftCreate']
 export type Request = ApiSchemas['RequestRead']
 export type CreateRequestInput = ApiSchemas['RequestCreate']
+export type AssistedChannel = 'phone' | 'in_person'
+export type CreateAssistedRequestInput = Omit<CreateRequestInput, 'channel'> & {
+  channel: AssistedChannel
+}
 export type Priority = ApiSchemas['Priority']
 export type WaitReason = 'external_input' | 'user_information'
 export type SlaAgreement = ApiSchemas['SlaAgreementRead']
