@@ -5,7 +5,7 @@ import type {
   CreateAssistedRequestInput,
   CreateRequestInput,
   Request,
-  WaitReason
+  WaitReason,
 } from '@/api/types'
 
 export type {
@@ -28,6 +28,9 @@ export function createAssistedRequest(
   return apiFetch<Request>('/solicitudes/asistido', {
     method: 'POST',
     body: JSON.stringify(input),
+  })
+}
+
 export function putRequestOnHold(
   requestId: string,
   reason: WaitReason,

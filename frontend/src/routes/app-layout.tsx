@@ -9,8 +9,7 @@ import {
   Timer,
   Users,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
 import { cn } from '@/shared/lib/utils'
 
@@ -36,11 +35,6 @@ const navigation: NavigationItem[] = [
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
   { label: 'SLA', to: '/sla', icon: Timer },
-  {
-    label: 'Solicitudes Asistidas',
-    to: '/solicitudes/asistido',
-    icon: PhoneCall,
-  },
 ]
 
 function getInitials(fullName: string): string {
