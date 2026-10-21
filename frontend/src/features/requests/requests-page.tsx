@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Filter, Plus, Search } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { SolicitudForm } from './solicitud-form'
 import { EsperaDialog } from '@/features/requests/components/EsperaDialog'
@@ -65,7 +66,11 @@ const priorityStyles: Record<Priority, string> = {
 }
 
 export function RequestsPage() {
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const location = useLocation()
+  // El botón «Nueva solicitud» del Resumen llega con { openForm: true }.
+  const [isFormOpen, setIsFormOpen] = useState(
+    Boolean((location.state as { openForm?: boolean } | null)?.openForm),
+  )
   const [openEspera, setOpenEspera] = useState(false)
   const [folioSeleccionado, setFolioSeleccionado] = useState<string | null>(
     null,

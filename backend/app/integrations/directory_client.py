@@ -18,6 +18,24 @@ _DEMO_PROFILES: dict[str, DirectoryProfile] = {
         email="amartinez@uaemex.mx",
         user_type=UserType.ACADEMIC,
     ),
+    "uaem2026002": DirectoryProfile(
+        institutional_id="uaem2026002",
+        full_name="Carlos López Hernández",
+        email="clopez@uaemex.mx",
+        user_type=UserType.STUDENT,
+    ),
+    "uaem2026003": DirectoryProfile(
+        institutional_id="uaem2026003",
+        full_name="María González Pérez",
+        email="mgonzalez@uaemex.mx",
+        user_type=UserType.ADMINISTRATIVE,
+    ),
+    "uaem2026004": DirectoryProfile(
+        institutional_id="uaem2026004",
+        full_name="José Ramírez Torres",
+        email="jramirez@uaemex.mx",
+        user_type=UserType.TECHNICAL,
+    ),
 }
 
 

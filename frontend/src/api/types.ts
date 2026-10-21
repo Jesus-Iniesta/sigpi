@@ -5,7 +5,8 @@ export type UserRole = ApiSchemas['RoleName']
 export type User = Omit<ApiSchemas['UserRead'], 'roles'> & {
   roles: UserRole[]
 }
-export type CreateUserInput = ApiSchemas['UserCreate']
+// openapi.ts aún no incluye `password` en UserCreate; se agrega aquí hasta regenerarlo.
+export type CreateUserInput = ApiSchemas['UserCreate'] & { password: string }
 export type UpdateUserInput = ApiSchemas['UserUpdate']
 export type ServiceArea = ApiSchemas['ServiceAreaRead']
 export type OrganizationalUnit = ApiSchemas['OrganizationalUnitRead']
