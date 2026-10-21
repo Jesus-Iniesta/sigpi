@@ -46,6 +46,13 @@ async function abrirFormularioDeAlta() {
   return user
 }
 
+async function escribirContrasena(
+  user: ReturnType<typeof userEvent.setup>,
+  valor = 'Prueba1234',
+) {
+  await user.type(screen.getByPlaceholderText('Mínimo 8 caracteres'), valor)
+}
+
 describe('UsersPage: alta de cuentas (S2-06, HU-10.1)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -82,11 +89,13 @@ describe('UsersPage: alta de cuentas (S2-06, HU-10.1)', () => {
       screen.getByPlaceholderText('Ej. uaem2026001'),
       'uaem2026001',
     )
+    await escribirContrasena(user)
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(createUserMock).toHaveBeenCalledTimes(1))
     expect(createUserMock.mock.calls[0][0]).toEqual({
       institutional_id: 'uaem2026001',
+      password: 'Prueba1234',
       role: 'requester',
       max_load: null,
     })
@@ -108,6 +117,7 @@ describe('UsersPage: alta de cuentas (S2-06, HU-10.1)', () => {
       'uaem2026001',
     )
     await user.type(screen.getByPlaceholderText('Sin límite'), '5')
+    await escribirContrasena(user)
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(createUserMock).toHaveBeenCalledTimes(1))
@@ -129,6 +139,7 @@ describe('UsersPage: alta de cuentas (S2-06, HU-10.1)', () => {
       screen.getByPlaceholderText('Ej. uaem2026001'),
       'cuenta-inexistente',
     )
+    await escribirContrasena(user)
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(
@@ -138,5 +149,34 @@ describe('UsersPage: alta de cuentas (S2-06, HU-10.1)', () => {
       screen.getByRole('heading', { name: 'Nuevo usuario' }),
     ).toBeInTheDocument()
     expect(getUsersMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('el formulario de alta pide la contraseña', async () => {
+    getUsersMock.mockResolvedValue([])
+    renderPage()
+    await screen.findByText('No hay usuarios que mostrar')
+
+    await abrirFormularioDeAlta()
+
+    expect(screen.getByPlaceholderText('Mínimo 8 caracteres')).toHaveAttribute(
+      'type',
+      'password',
+    )
+  })
+
+  it('una contraseña de menos de 8 caracteres no envía el alta', async () => {
+    getUsersMock.mockResolvedValue([])
+    renderPage()
+    await screen.findByText('No hay usuarios que mostrar')
+
+    const user = await abrirFormularioDeAlta()
+    await user.type(
+      screen.getByPlaceholderText('Ej. uaem2026001'),
+      'uaem2026001',
+    )
+    await escribirContrasena(user, 'corta')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(createUserMock).not.toHaveBeenCalled()
   })
 })

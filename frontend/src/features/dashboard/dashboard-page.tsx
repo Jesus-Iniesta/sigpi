@@ -6,6 +6,7 @@ import {
   FileText,
   ShieldCheck,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { getHealth } from '@/api/health'
 import { Button } from '@/shared/ui/button'
 
@@ -37,6 +38,7 @@ const metrics = [
 ]
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const health = useQuery({
     queryKey: ['health'],
     queryFn: getHealth,
@@ -57,7 +59,11 @@ export function DashboardPage() {
             Aqui tienes el pulso de la gestion institucional.
           </p>
         </div>
-        <Button>
+        <Button
+          onClick={() =>
+            navigate('/solicitudes', { state: { openForm: true } })
+          }
+        >
           <ArrowUpRight size={16} />
           Nueva solicitud
         </Button>

@@ -33,12 +33,14 @@ const roleLabels = Object.fromEntries(
 
 type UserForm = {
   institutional_id: string
+  password: string
   role: UserRole
   max_load: string
 }
 
 const emptyForm: UserForm = {
   institutional_id: '',
+  password: '',
   role: 'requester',
   max_load: '',
 }
@@ -75,6 +77,25 @@ function UserFormFields({
           />
           <span className="mt-1 block text-xs font-normal text-[#87959c]">
             Se validará contra el directorio institucional.
+          </span>
+        </label>
+      )}
+      {!editing && (
+        <label className="block text-sm font-medium text-[#334155]">
+          Contraseña
+          <input
+            required
+            type="password"
+            minLength={8}
+            autoComplete="new-password"
+            value={form.password}
+            onChange={(event) => onChange('password', event.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3 outline-none focus:border-[#0f766e]"
+            disabled={disabled}
+          />
+          <span className="mt-1 block text-xs font-normal text-[#87959c]">
+            Con ella iniciará sesión en SIGPI.
           </span>
         </label>
       )}
@@ -187,6 +208,7 @@ export function UsersPage() {
     setEditingUser(user)
     setForm({
       institutional_id: user.institutional_id,
+      password: '',
       role: user.roles[0] ?? 'requester',
       max_load: user.max_load?.toString() ?? '',
     })
@@ -219,8 +241,14 @@ export function UsersPage() {
       return
     }
 
+    if (form.password.length < 8) {
+      setFormError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
     createMutation.mutate({
       institutional_id: form.institutional_id.trim(),
+      password: form.password,
       role: form.role,
       max_load: maxLoad,
     })
