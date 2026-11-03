@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
@@ -11,22 +11,25 @@ from app.schemas.sla import (
     EffectiveSlaRead,
     SlaAgreementCreate,
     SlaAgreementRead,
+    SlaOptionsRead,
     SlaVersionCreate,
     SlaVersionRead,
 )
-from app.services.sla_service import (
-    SlaConflictError,
-    SlaNotConfiguredError,
-    SlaNotFoundError,
-    SlaService,
-    SlaValidationError,
-)
+from app.services.sla_service import SlaService
 
+# Los errores esperados del servicio son subclases de `SigpiError`; el manejador global
+# los convierte en la respuesta HTTP correspondiente (404, 409 o 422).
 router = APIRouter(prefix="/sla", tags=["sla"])
 
 
 def get_sla_service(session: AsyncSession = Depends(get_session)) -> SlaService:
     return SlaService(SlaRepository(session))
+
+
+@router.get("/options", response_model=SlaOptionsRead)
+async def list_options():
+    default_name, service_types = SlaService.list_options()
+    return SlaOptionsRead(default_name=default_name, service_types=service_types)
 
 
 @router.get("/agreements", response_model=list[SlaAgreementRead])
@@ -38,12 +41,7 @@ async def list_agreements(service: SlaService = Depends(get_sla_service)):
 async def create_agreement(
     payload: SlaAgreementCreate, service: SlaService = Depends(get_sla_service)
 ):
-    try:
-        return await service.create_agreement(payload)
-    except SlaConflictError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
-    except SlaValidationError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return await service.create_agreement(payload)
 
 
 @router.get("/agreements/{agreement_id}/versions", response_model=list[SlaVersionRead])
@@ -52,10 +50,7 @@ async def list_versions(
     priority: Priority | None = None,
     service: SlaService = Depends(get_sla_service),
 ):
-    try:
-        return await service.list_versions(agreement_id, priority=priority)
-    except SlaNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    return await service.list_versions(agreement_id, priority=priority)
 
 
 @router.post(
@@ -68,12 +63,7 @@ async def publish_version(
     payload: SlaVersionCreate,
     service: SlaService = Depends(get_sla_service),
 ):
-    try:
-        return await service.publish_version(agreement_id, payload)
-    except SlaNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-    except SlaValidationError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return await service.publish_version(agreement_id, payload)
 
 
 @router.get("/effective", response_model=EffectiveSlaRead)
@@ -83,7 +73,4 @@ async def get_effective_sla(
     at: datetime | None = None,
     service: SlaService = Depends(get_sla_service),
 ):
-    try:
-        return await service.resolve_effective(category_id, priority, at)
-    except SlaNotConfiguredError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    return await service.resolve_effective(category_id, priority, at)

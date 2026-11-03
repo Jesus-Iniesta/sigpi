@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app.core.exceptions import BusinessRuleError, ConflictError
 from app.db.base import Base
+from app.domain.sla_options import AGREEMENT_DEFAULT_NAME, SERVICE_TYPE_NAMES
 from app.models.catalog import AreaServicio, Categoria
 from app.models.enums import Priority
 from app.models.organization import OrganizationalUnit
@@ -23,6 +25,7 @@ from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import SlaAgreementCreate, SlaPriorityTimes, SlaVersionCreate
 from app.services.sla_service import (
     SlaConflictError,
+    SlaNameNotAllowedError,
     SlaNotConfiguredError,
     SlaNotFoundError,
     SlaService,
@@ -31,6 +34,7 @@ from app.services.sla_service import (
 
 T0 = datetime(2026, 9, 1, 8, 0, tzinfo=UTC)
 T1 = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+SERVICE_NAME = "Conectividad y redes"
 
 
 @pytest_asyncio.fixture
@@ -83,7 +87,7 @@ async def _agreement(service: SlaService, category: uuid.UUID | None = None):
             SlaAgreementCreate(name="Predeterminado", is_default=True)
         )
     return await service.create_agreement(
-        SlaAgreementCreate(name="Conectividad", category_id=category)
+        SlaAgreementCreate(name=SERVICE_NAME, category_id=category)
     )
 
 
@@ -118,7 +122,64 @@ async def test_no_permite_dos_acuerdos_predeterminados(service) -> None:
 @pytest.mark.asyncio
 async def test_acuerdo_de_categoria_inexistente_se_rechaza(service) -> None:
     with pytest.raises(SlaValidationError):
-        await service.create_agreement(SlaAgreementCreate(name="X", category_id=uuid.uuid4()))
+        await service.create_agreement(
+            SlaAgreementCreate(name=SERVICE_NAME, category_id=uuid.uuid4())
+        )
+
+
+# --- COR-05: nombres predefinidos -------------------------------------------
+@pytest.mark.asyncio
+async def test_nombre_libre_se_rechaza_con_codigo_estable(service, category_id) -> None:
+    with pytest.raises(SlaNameNotAllowedError) as caught:
+        await service.create_agreement(
+            SlaAgreementCreate(name="Mi acuerdo inventado", category_id=category_id)
+        )
+
+    assert isinstance(caught.value, BusinessRuleError)
+    assert caught.value.code == "sla_name_not_allowed"
+    assert caught.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_acuerdo_por_categoria_sin_nombre_se_rechaza(service, category_id) -> None:
+    with pytest.raises(SlaNameNotAllowedError):
+        await service.create_agreement(SlaAgreementCreate(category_id=category_id))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", SERVICE_TYPE_NAMES)
+async def test_acepta_cada_tipo_de_servicio(service, category_id, name) -> None:
+    agreement = await service.create_agreement(
+        SlaAgreementCreate(name=name, category_id=category_id)
+    )
+
+    assert agreement.name == name
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sent", ["Cualquier texto", None])
+async def test_predeterminado_siempre_lleva_el_nombre_fijo(service, sent) -> None:
+    agreement = await service.create_agreement(SlaAgreementCreate(name=sent, is_default=True))
+
+    assert agreement.name == AGREEMENT_DEFAULT_NAME == "Acuerdo general de servicio"
+
+
+@pytest.mark.asyncio
+async def test_duplicado_activo_con_mismo_nombre_y_categoria_es_conflicto(
+    service, category_id
+) -> None:
+    await _agreement(service, category_id)
+
+    with pytest.raises(ConflictError, match=SERVICE_NAME):
+        await _agreement(service, category_id)
+
+
+def test_opciones_incluyen_los_tipos_de_servicio() -> None:
+    default_name, service_types = SlaService.list_options()
+
+    assert default_name == AGREEMENT_DEFAULT_NAME
+    assert service_types == list(SERVICE_TYPE_NAMES)
+    assert default_name not in service_types
 
 
 def test_acuerdo_predeterminado_no_lleva_categoria() -> None:

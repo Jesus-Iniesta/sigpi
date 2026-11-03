@@ -4,6 +4,7 @@ import {
   createSlaAgreement,
   getEffectiveSla,
   getSlaAgreements,
+  getSlaOptions,
   getSlaVersions,
   publishSlaVersion,
   type SlaVersionInput,
@@ -13,6 +14,14 @@ export function useSlaAgreements() {
   return useQuery({
     queryKey: ['sla', 'agreements'],
     queryFn: getSlaAgreements,
+  })
+}
+
+export function useSlaOptions() {
+  return useQuery({
+    queryKey: ['sla', 'options'],
+    queryFn: getSlaOptions,
+    staleTime: Infinity,
   })
 }
 

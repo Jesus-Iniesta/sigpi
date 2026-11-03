@@ -14,25 +14,37 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
+from app.domain.sla_options import (
+    AGREEMENT_DEFAULT_NAME,
+    SERVICE_TYPE_NAMES,
+    is_allowed_agreement_name,
+)
 from app.models.enums import Priority
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import SlaAgreementCreate, SlaVersionCreate
 
 
-class SlaNotFoundError(LookupError):
+class SlaNotFoundError(NotFoundError):
     """El acuerdo solicitado no existe."""
 
 
-class SlaConflictError(ValueError):
+class SlaConflictError(ConflictError):
     """La operación choca con un acuerdo que ya existe."""
 
 
-class SlaValidationError(ValueError):
+class SlaValidationError(BusinessRuleError):
     """Los datos no cumplen las reglas del acuerdo de nivel de servicio."""
 
 
-class SlaNotConfiguredError(LookupError):
+class SlaNameNotAllowedError(SlaValidationError):
+    """El nombre del acuerdo no está en la lista de tipos de servicio."""
+
+    code = "sla_name_not_allowed"
+
+
+class SlaNotConfiguredError(NotFoundError):
     """No hay acuerdo propio ni predeterminado para la combinación solicitada."""
 
 
@@ -61,22 +73,41 @@ class SlaService:
         self._repository = repository
 
     # --- acuerdos ----------------------------------------------------------
+    @staticmethod
+    def list_options() -> tuple[str, list[str]]:
+        """Nombre fijo del predeterminado y tipos de servicio para acuerdos por categoría."""
+        return AGREEMENT_DEFAULT_NAME, list(SERVICE_TYPE_NAMES)
+
     async def list_agreements(self) -> list[ServiceLevelAgreement]:
         return await self._repository.list_agreements()
 
     async def create_agreement(self, payload: SlaAgreementCreate) -> ServiceLevelAgreement:
         if payload.is_default:
+            # El predeterminado siempre lleva el nombre fijo; se ignora el enviado.
+            name = AGREEMENT_DEFAULT_NAME
             if await self._repository.find_default() is not None:
                 raise SlaConflictError("Ya existe un acuerdo predeterminado activo.")
         else:
             assert payload.category_id is not None
+            name = (payload.name or "").strip()
+            if not is_allowed_agreement_name(name):
+                raise SlaNameNotAllowedError(
+                    "El nombre del acuerdo debe ser uno de los tipos de servicio disponibles."
+                )
             if not await self._repository.category_exists(payload.category_id):
                 raise SlaValidationError(f"La categoría {payload.category_id} no existe.")
+            if any(
+                existing.is_active
+                and existing.name == name
+                and existing.category_id == payload.category_id
+                for existing in await self._repository.list_agreements()
+            ):
+                raise SlaConflictError(f"Ya existe un acuerdo activo «{name}» para esta categoría.")
             if await self._repository.find_active_for_category(payload.category_id) is not None:
                 raise SlaConflictError("La categoría ya tiene un acuerdo activo.")
 
         agreement = ServiceLevelAgreement(
-            name=payload.name,
+            name=name,
             category_id=payload.category_id,
             is_default=payload.is_default,
             is_active=True,
