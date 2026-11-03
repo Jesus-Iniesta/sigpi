@@ -13,6 +13,30 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sigpi
+          POSTGRES_PASSWORD: sigpi
+          POSTGRES_DB: sigpi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sigpi -d sigpi_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # app/core/config.py arma la URL de conexión a partir de estas variables.
+      DATABASE_HOST: localhost
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: sigpi_test
+      DATABASE_USER: sigpi
+      DATABASE_PASSWORD: sigpi
+      DATABASE_URL: postgresql+asyncpg://sigpi:sigpi@localhost:5432/sigpi_test
+      # Las pruebas de audit_logs fallan (en lugar de saltarse) si no hay PostgreSQL.
+      SIGPI_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,8 +48,10 @@ jobs:
         run: pip install -r requirements.txt
       - name: ruff (estilo)
         run: ruff check app tests
+      - name: Migraciones (alembic upgrade head)
+        run: alembic upgrade head
       - name: pytest
-        run: pytest -q
+        run: pytest -q -rs
 
   frontend:
     name: Frontend (eslint + tsc + build)
