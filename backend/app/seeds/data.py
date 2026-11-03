@@ -1,5 +1,16 @@
 from app.core.permissions import RoleName
+from app.domain.catalog_options import (
+    SERVICE_AREA_OPTIONS,
+    SHIFT_OPTIONS,
+    SPECIALTY_OPTIONS,
+    ShiftOption,
+)
 from app.models.enums import Priority, SupportLevel, UserType
+
+# Las áreas, especialidades y turnos se toman de la fuente única de opciones (COR-04).
+SERVICE_AREA_SEEDS: tuple[str, ...] = SERVICE_AREA_OPTIONS
+SPECIALTY_SEEDS: dict[str, tuple[str, ...]] = SPECIALTY_OPTIONS
+SHIFT_SEEDS: tuple[ShiftOption, ...] = SHIFT_OPTIONS
 
 CATEGORY_SEEDS: tuple[tuple[str, str], ...] = (
     ("Hardware", "Incidencias relacionadas con equipos y periféricos."),

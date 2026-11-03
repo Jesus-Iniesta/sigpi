@@ -10,6 +10,18 @@ Reglas aplicadas:
 
 import uuid
 
+from app.domain.catalog_options import (
+    CATEGORY_OPTIONS,
+    MAX_LOAD_MAX,
+    MAX_LOAD_MIN,
+    SERVICE_AREA_OPTIONS,
+    SHIFT_OPTIONS,
+    SPECIALTY_OPTIONS,
+    CatalogOptionError,
+    ensure_option,
+    shift_option,
+    specialties_for,
+)
 from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.models.identity import User
 from app.repositories.catalog_repository import (
@@ -20,10 +32,15 @@ from app.repositories.catalog_repository import (
     TechnicianRepository,
 )
 from app.schemas.catalog import (
+    CatalogOptionNotAllowedError,
+    CatalogOptionsRead,
     CategoryCreate,
+    MaxLoadRange,
     ServiceAreaCreate,
     ShiftCreate,
+    ShiftOptionRead,
     SpecialtyCreate,
+    SpecialtyOptionsRead,
     TechnicianProfileUpdate,
 )
 
@@ -46,6 +63,28 @@ class CatalogService:
         self._specialties = specialties
         self._shifts = shifts
         self._technicians = technicians
+
+    # --- opciones predefinidas (COR-04) ---------------------------------------
+    @staticmethod
+    def get_options() -> CatalogOptionsRead:
+        """Listas cerradas que el frontend usa para llenar sus selectores."""
+        return CatalogOptionsRead(
+            service_areas=list(SERVICE_AREA_OPTIONS),
+            categories=list(CATEGORY_OPTIONS),
+            specialties=[
+                SpecialtyOptionsRead(category=category, names=list(names))
+                for category, names in SPECIALTY_OPTIONS.items()
+            ],
+            shifts=[
+                ShiftOptionRead(
+                    name=option.name,
+                    start_minute=option.start_minute,
+                    end_minute=option.end_minute,
+                )
+                for option in SHIFT_OPTIONS
+            ],
+            max_load=MaxLoadRange(min=MAX_LOAD_MIN, max=MAX_LOAD_MAX),
+        )
 
     # --- áreas de servicio ---------------------------------------------------
     async def list_areas(self) -> list[AreaServicio]:
@@ -74,8 +113,17 @@ class CatalogService:
         return await self._specialties.list_all(category_id=category_id)
 
     async def create_specialty(self, payload: SpecialtyCreate) -> Especialidad:
-        if await self._categories.get(payload.category_id) is None:
+        category = await self._categories.get(payload.category_id)
+        if category is None:
             raise CatalogValidationError(f"category {payload.category_id} does not exist")
+        try:
+            ensure_option(
+                f"las especialidades de la categoría «{category.name}»",
+                payload.name,
+                specialties_for(category.name),
+            )
+        except CatalogOptionError as exc:
+            raise CatalogOptionNotAllowedError(str(exc)) from exc
         specialty = Especialidad(category_id=payload.category_id, name=payload.name)
         return await self._specialties.create(specialty)
 
@@ -84,10 +132,13 @@ class CatalogService:
         return await self._shifts.list_all()
 
     async def create_shift(self, payload: ShiftCreate) -> Turno:
-        if payload.end_minute <= payload.start_minute:
-            raise CatalogValidationError("a shift cannot end before it starts")
+        # El horario no lo envía el cliente: se toma del turno predefinido.
+        try:
+            option = shift_option(payload.name)
+        except CatalogOptionError as exc:
+            raise CatalogOptionNotAllowedError(str(exc)) from exc
         shift = Turno(
-            name=payload.name, start_minute=payload.start_minute, end_minute=payload.end_minute
+            name=option.name, start_minute=option.start_minute, end_minute=option.end_minute
         )
         return await self._shifts.create(shift)
 

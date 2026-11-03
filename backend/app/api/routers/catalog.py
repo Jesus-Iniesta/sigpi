@@ -15,6 +15,7 @@ from app.repositories.catalog_repository import (
     TechnicianRepository,
 )
 from app.schemas.catalog import (
+    CatalogOptionsRead,
     CategoryCreate,
     CategoryRead,
     OrganizationalUnitRead,
@@ -56,6 +57,11 @@ def _to_technician_read(user: User) -> TechnicianRead:
 
 def _unprocessable(exc: CatalogValidationError) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
+
+
+@router.get("/options", response_model=CatalogOptionsRead)
+async def list_options(service: CatalogService = Depends(get_catalog_service)):
+    return service.get_options()
 
 
 @router.get("/areas", response_model=list[ServiceAreaRead])

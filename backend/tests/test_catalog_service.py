@@ -4,8 +4,10 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
+from app.domain.catalog_options import validate_description
 from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.schemas.catalog import (
+    CatalogOptionNotAllowedError,
     CategoryCreate,
     ServiceAreaCreate,
     ShiftCreate,
@@ -67,8 +69,10 @@ def _technician(**overrides):
 @pytest.mark.asyncio
 async def test_create_area_persists_it() -> None:
     service = _service()
-    area = await service.create_area(ServiceAreaCreate(unit_id=uuid.uuid4(), name="Redes"))
-    assert area.name == "Redes"
+    area = await service.create_area(
+        ServiceAreaCreate(unit_id=uuid.uuid4(), name="Infraestructura y redes")
+    )
+    assert area.name == "Infraestructura y redes"
     assert area in await service.list_areas()
 
 
@@ -76,14 +80,14 @@ async def test_create_area_persists_it() -> None:
 async def test_create_category_requires_existing_area() -> None:
     service = _service()
     with pytest.raises(CatalogValidationError):
-        await service.create_category(CategoryCreate(area_id=uuid.uuid4(), name="Conmutación"))
+        await service.create_category(CategoryCreate(area_id=uuid.uuid4(), name="Redes"))
 
 
 @pytest.mark.asyncio
 async def test_create_category_with_existing_area() -> None:
-    area = AreaServicio(id=uuid.uuid4(), unit_id=uuid.uuid4(), name="Redes")
+    area = AreaServicio(id=uuid.uuid4(), unit_id=uuid.uuid4(), name="Infraestructura y redes")
     service = _service(areas=[area])
-    category = await service.create_category(CategoryCreate(area_id=area.id, name="Conmutación"))
+    category = await service.create_category(CategoryCreate(area_id=area.id, name="Redes"))
     assert category.area_id == area.id
 
 
@@ -91,7 +95,9 @@ async def test_create_category_with_existing_area() -> None:
 async def test_create_specialty_requires_existing_category() -> None:
     service = _service()
     with pytest.raises(CatalogValidationError):
-        await service.create_specialty(SpecialtyCreate(category_id=uuid.uuid4(), name="VLAN"))
+        await service.create_specialty(
+            SpecialtyCreate(category_id=uuid.uuid4(), name="Red cableada")
+        )
 
 
 @pytest.mark.asyncio
@@ -99,29 +105,87 @@ async def test_create_specialty_with_existing_category() -> None:
     category = Categoria(id=uuid.uuid4(), area_id=uuid.uuid4(), name="Redes")
     service = _service(categories=[category])
     specialty = await service.create_specialty(
-        SpecialtyCreate(category_id=category.id, name="VLAN")
+        SpecialtyCreate(category_id=category.id, name="Red cableada")
     )
     assert specialty.category_id == category.id
 
 
-def test_shift_schema_rejects_end_before_start() -> None:
-    with pytest.raises(ValidationError):
-        ShiftCreate(name="Inválido", start_minute=600, end_minute=480)
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["VLAN", "Correo institucional"])
+async def test_create_specialty_rejects_name_outside_its_category(name: str) -> None:
+    category = Categoria(id=uuid.uuid4(), area_id=uuid.uuid4(), name="Redes")
+    service = _service(categories=[category])
+    with pytest.raises(CatalogOptionNotAllowedError, match="Red cableada"):
+        await service.create_specialty(SpecialtyCreate(category_id=category.id, name=name))
 
 
 @pytest.mark.asyncio
-async def test_create_shift_persists_it() -> None:
+async def test_create_specialty_rejects_any_name_for_legacy_category() -> None:
+    category = Categoria(id=uuid.uuid4(), area_id=uuid.uuid4(), name="Conmutación")
+    service = _service(categories=[category])
+    with pytest.raises(CatalogOptionNotAllowedError):
+        await service.create_specialty(
+            SpecialtyCreate(category_id=category.id, name="Red cableada")
+        )
+
+
+@pytest.mark.parametrize(
+    ("schema", "kwargs"),
+    [
+        (ServiceAreaCreate, {"unit_id": uuid.uuid4(), "name": "Redes"}),
+        (CategoryCreate, {"area_id": uuid.uuid4(), "name": "Conmutación"}),
+        (ShiftCreate, {"name": "Nocturno"}),
+    ],
+)
+def test_schemas_reject_names_outside_options(schema, kwargs) -> None:
+    with pytest.raises(CatalogOptionNotAllowedError) as exc_info:
+        schema(**kwargs)
+    assert exc_info.value.code == "catalog_option_not_allowed"
+    assert "Valores permitidos" in exc_info.value.message
+
+
+def test_shift_schema_no_longer_accepts_minutes() -> None:
+    with pytest.raises(ValidationError):
+        ShiftCreate(name="Matutino", start_minute=600, end_minute=480)
+
+
+@pytest.mark.asyncio
+async def test_create_shift_uses_fixed_schedule() -> None:
     service = _service()
-    shift = await service.create_shift(
-        ShiftCreate(name="Matutino", start_minute=420, end_minute=900)
-    )
-    assert shift.start_minute == 420
+    shift = await service.create_shift(ShiftCreate(name="Vespertino"))
+    assert (shift.start_minute, shift.end_minute) == (13 * 60, 21 * 60)
     assert shift in await service.list_shifts()
+
+
+def test_options_expose_closed_lists() -> None:
+    options = CatalogService.get_options()
+    assert options.categories == ["Hardware", "Software", "Redes", "Cuentas y accesos"]
+    assert [shift.name for shift in options.shifts] == ["Matutino", "Vespertino", "Mixto"]
+    assert (options.max_load.min, options.max_load.max) == (1, 15)
+
+
+@pytest.mark.parametrize("value", ["<b>negrita</b>", "a > b", "tab\tinterno", "x" * 301])
+def test_validate_description_rejects_html_control_and_long_text(value: str) -> None:
+    with pytest.raises(ValueError):
+        validate_description(value)
+
+
+def test_description_is_trimmed_and_blank_becomes_none() -> None:
+    assert CategoryCreate(
+        area_id=uuid.uuid4(), name="Redes", description="  hola "
+    ).description == ("hola")
+    assert CategoryCreate(area_id=uuid.uuid4(), name="Redes", description="   ").description is None
+
+
+def test_max_load_is_limited_to_fifteen() -> None:
+    assert TechnicianProfileUpdate(max_load=15).max_load == 15
+    with pytest.raises(ValidationError):
+        TechnicianProfileUpdate(max_load=16)
 
 
 @pytest.mark.asyncio
 async def test_update_technician_sets_specialties_rn08() -> None:
-    specialty = Especialidad(id=uuid.uuid4(), category_id=uuid.uuid4(), name="VLAN")
+    specialty = Especialidad(id=uuid.uuid4(), category_id=uuid.uuid4(), name="Red cableada")
     technician = _technician()
     service = _service(specialties=[specialty], technicians=[technician])
 
@@ -173,7 +237,7 @@ async def test_update_unknown_technician_fails() -> None:
 
 @pytest.mark.asyncio
 async def test_partial_update_keeps_unspecified_fields() -> None:
-    specialty = Especialidad(id=uuid.uuid4(), category_id=uuid.uuid4(), name="VLAN")
+    specialty = Especialidad(id=uuid.uuid4(), category_id=uuid.uuid4(), name="Red cableada")
     technician = _technician(specialties=[specialty], max_load=4)
     service = _service(specialties=[specialty], technicians=[technician])
     updated = await service.update_technician_profile(

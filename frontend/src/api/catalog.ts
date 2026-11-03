@@ -1,5 +1,6 @@
 import { apiFetch } from '@/api/client'
 import type {
+  CatalogOptions,
   Category,
   CategoryInput,
   OrganizationalUnit,
@@ -7,6 +8,7 @@ import type {
   ServiceAreaInput,
   Shift,
   ShiftInput,
+  ShiftOption,
   Specialty,
   SpecialtyInput,
   Technician,
@@ -14,6 +16,7 @@ import type {
 } from '@/api/types'
 
 export type {
+  CatalogOptions,
   Category,
   CategoryInput,
   OrganizationalUnit,
@@ -21,11 +24,15 @@ export type {
   ServiceAreaInput,
   Shift,
   ShiftInput,
+  ShiftOption,
   Specialty,
   SpecialtyInput,
   Technician,
   TechnicianUpdate,
 }
+
+export const getCatalogOptions = () =>
+  apiFetch<CatalogOptions>('/catalog/options')
 
 export const getAreas = () => apiFetch<ServiceArea[]>('/catalog/areas')
 

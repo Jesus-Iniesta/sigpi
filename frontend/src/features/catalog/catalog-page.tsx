@@ -16,6 +16,7 @@ import {
   createShift,
   createSpecialty,
   getAreas,
+  getCatalogOptions,
   getCategories,
   getOrganizationalUnits,
   getShifts,
@@ -38,10 +39,21 @@ function minutesToTime(minutes: number) {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
 }
 
-function timeToMinutes(value: string) {
-  const [hours, minutes] = value.split(':').map(Number)
-  return hours * 60 + minutes
+function range(min: number, max: number) {
+  return Array.from({ length: max - min + 1 }, (_, index) => min + index)
 }
+
+// Las descripciones no admiten caracteres de control: los saltos de línea del
+// área de texto se convierten en espacios antes de enviarlas.
+function cleanDescription(value: FormDataEntryValue | null) {
+  return (
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim() || null
+  )
+}
+
+const REGISTERED_LABEL = 'ya registrada'
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
@@ -90,6 +102,8 @@ export function CatalogPage() {
   )
   const [formType, setFormType] = useState<CatalogFormType | null>(null)
   const [formError, setFormError] = useState('')
+  const [parentId, setParentId] = useState('')
+  const [optionName, setOptionName] = useState('')
 
   const results = useQueries({
     queries: [
@@ -102,6 +116,7 @@ export function CatalogPage() {
       { queryKey: ['catalog', 'specialties'], queryFn: getSpecialties },
       { queryKey: ['catalog', 'shifts'], queryFn: getShifts },
       { queryKey: ['catalog', 'technicians'], queryFn: getTechnicians },
+      { queryKey: ['catalog', 'options'], queryFn: getCatalogOptions },
     ],
   })
   const [
@@ -111,6 +126,7 @@ export function CatalogPage() {
     specialtiesQuery,
     shiftsQuery,
     techniciansQuery,
+    optionsQuery,
   ] = results
   const areas = areasQuery.data ?? []
   const organizationalUnits = organizationalUnitsQuery.data ?? []
@@ -121,6 +137,41 @@ export function CatalogPage() {
     () => techniciansQuery.data ?? [],
     [techniciansQuery.data],
   )
+  const options = optionsQuery.data
+  const maxLoadOptions = options
+    ? range(options.max_load.min, options.max_load.max)
+    : []
+  const selectedCategory = categories.find(
+    (category) => category.id === parentId,
+  )
+  const selectedShiftOption = options?.shifts.find(
+    (shift) => shift.name === optionName,
+  )
+
+  // Opciones predefinidas del formulario abierto y las que ya existen en la base de datos.
+  const nameOptions: string[] = !options
+    ? []
+    : formType === 'area'
+      ? options.service_areas
+      : formType === 'category'
+        ? options.categories
+        : formType === 'specialty'
+          ? (options.specialties.find(
+              (group) => group.category === selectedCategory?.name,
+            )?.names ?? [])
+          : options.shifts.map((shift) => shift.name)
+  const registeredNames = new Set<string>(
+    formType === 'area'
+      ? areas.map((area) => area.name)
+      : formType === 'category'
+        ? categories.map((category) => category.name)
+        : formType === 'specialty'
+          ? specialties
+              .filter((specialty) => specialty.category_id === parentId)
+              .map((specialty) => specialty.name)
+          : shifts.map((shift) => shift.name),
+  )
+
   const isLoading = results.some((result) => result.isLoading)
   const isError = results.some((result) => result.isError)
 
@@ -184,17 +235,17 @@ export function CatalogPage() {
     setFormError('')
   }
 
+  const openForm = (type: CatalogFormType) => {
+    setFormError('')
+    setParentId('')
+    setOptionName('')
+    setFormType(type)
+  }
+
   const handleTechnicianSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const maxLoad = String(formData.get('max_load') ?? '')
-    if (
-      maxLoad &&
-      (!Number.isInteger(Number(maxLoad)) || Number(maxLoad) < 1)
-    ) {
-      setFormError('La carga máxima debe ser un entero mayor que cero.')
-      return
-    }
     setFormError('')
     technicianMutation.mutate({
       technician: editingTechnician!,
@@ -214,8 +265,8 @@ export function CatalogPage() {
       catalogMutations.area.mutate(
         {
           unit_id: String(formData.get('unit_id') ?? ''),
-          name: String(formData.get('name')).trim(),
-          description: String(formData.get('description') || '').trim() || null,
+          name: optionName,
+          description: cleanDescription(formData.get('description')),
         },
         {
           onSuccess: () => {
@@ -229,9 +280,9 @@ export function CatalogPage() {
     } else if (formType === 'category') {
       catalogMutations.category.mutate(
         {
-          area_id: String(formData.get('parent_id')),
-          name: String(formData.get('name')).trim(),
-          description: String(formData.get('description') || '').trim() || null,
+          area_id: parentId,
+          name: optionName,
+          description: cleanDescription(formData.get('description')),
         },
         {
           onSuccess: () => {
@@ -247,8 +298,8 @@ export function CatalogPage() {
     } else if (formType === 'specialty') {
       catalogMutations.specialty.mutate(
         {
-          category_id: String(formData.get('parent_id')),
-          name: String(formData.get('name')).trim(),
+          category_id: parentId,
+          name: optionName,
         },
         {
           onSuccess: () => {
@@ -262,18 +313,8 @@ export function CatalogPage() {
         },
       )
     } else if (formType === 'shift') {
-      const start = timeToMinutes(String(formData.get('start')))
-      const end = timeToMinutes(String(formData.get('end')))
-      if (end <= start) {
-        setFormError('El fin del turno debe ser posterior al inicio.')
-        return
-      }
       catalogMutations.shift.mutate(
-        {
-          name: String(formData.get('name')).trim(),
-          start_minute: start,
-          end_minute: end,
-        },
+        { name: optionName },
         {
           onSuccess: () => {
             void refreshCatalog()
@@ -301,12 +342,7 @@ export function CatalogPage() {
           </p>
         </div>
         {tab === 'catalog' && (
-          <Button
-            onClick={() => {
-              setFormError('')
-              setFormType('area')
-            }}
-          >
+          <Button onClick={() => openForm('area')}>
             <Plus size={17} />
             Nuevo elemento
           </Button>
@@ -472,10 +508,7 @@ export function CatalogPage() {
             title="Áreas de servicio"
             count={areas.length}
             icon={FolderTree}
-            onAdd={() => {
-              setFormError('')
-              setFormType('area')
-            }}
+            onAdd={() => openForm('area')}
           >
             {areas.map((area) => (
               <CatalogRow
@@ -489,10 +522,7 @@ export function CatalogPage() {
             title="Categorías"
             count={categories.length}
             icon={Layers3}
-            onAdd={() => {
-              setFormError('')
-              setFormType('category')
-            }}
+            onAdd={() => openForm('category')}
           >
             {categories.map((category) => (
               <CatalogRow
@@ -509,10 +539,7 @@ export function CatalogPage() {
             title="Especialidades"
             count={specialties.length}
             icon={SlidersHorizontal}
-            onAdd={() => {
-              setFormError('')
-              setFormType('specialty')
-            }}
+            onAdd={() => openForm('specialty')}
           >
             {specialties.map((specialty) => (
               <CatalogRow
@@ -530,10 +557,7 @@ export function CatalogPage() {
             title="Turnos"
             count={shifts.length}
             icon={Clock3}
-            onAdd={() => {
-              setFormError('')
-              setFormType('shift')
-            }}
+            onAdd={() => openForm('shift')}
           >
             {shifts.map((shift) => (
               <CatalogRow
@@ -583,15 +607,18 @@ export function CatalogPage() {
             </label>
             <label className="block text-sm font-medium text-[#334155]">
               Carga máxima
-              <input
+              <select
                 name="max_load"
-                type="number"
-                min="1"
-                max="50"
-                defaultValue={editingTechnician.max_load ?? ''}
-                placeholder="Ej. 8"
+                defaultValue={String(editingTechnician.max_load ?? '')}
                 className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
-              />
+              >
+                <option value="">Sin asignar</option>
+                {maxLoadOptions.map((load) => (
+                  <option key={load} value={load}>
+                    {load}
+                  </option>
+                ))}
+              </select>
             </label>
             <fieldset>
               <legend className="text-sm font-medium text-[#334155]">
@@ -671,6 +698,11 @@ export function CatalogPage() {
                 <select
                   required
                   name="parent_id"
+                  value={parentId}
+                  onChange={(event) => {
+                    setParentId(event.target.value)
+                    setOptionName('')
+                  }}
                   className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
                 >
                   <option value="">Selecciona una opción</option>
@@ -686,12 +718,35 @@ export function CatalogPage() {
             )}
             <label className="block text-sm font-medium text-[#334155]">
               Nombre
-              <input
+              <select
                 required
                 name="name"
-                maxLength={120}
-                className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
-              />
+                value={optionName}
+                onChange={(event) => setOptionName(event.target.value)}
+                disabled={formType === 'specialty' && !selectedCategory}
+                className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3 disabled:opacity-60"
+              >
+                <option value="">
+                  {formType === 'specialty' && !selectedCategory
+                    ? 'Selecciona primero una categoría'
+                    : 'Selecciona una opción'}
+                </option>
+                {nameOptions.map((name) => {
+                  const registered = registeredNames.has(name)
+                  return (
+                    <option key={name} value={name} disabled={registered}>
+                      {registered ? `${name} (${REGISTERED_LABEL})` : name}
+                    </option>
+                  )
+                })}
+              </select>
+              {formType === 'specialty' &&
+                selectedCategory &&
+                nameOptions.length === 0 && (
+                  <span className="mt-1 block text-xs text-[#b54735]">
+                    Esta categoría no tiene especialidades predefinidas.
+                  </span>
+                )}
             </label>
             {formType !== 'specialty' && formType !== 'shift' && (
               <label className="block text-sm font-medium text-[#334155]">
@@ -705,25 +760,19 @@ export function CatalogPage() {
               </label>
             )}
             {formType === 'shift' && (
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium text-[#334155]">
-                  Inicio
-                  <input
-                    required
-                    name="start"
-                    type="time"
-                    className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-[#334155]">
-                  Fin
-                  <input
-                    required
-                    name="end"
-                    type="time"
-                    className="mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3"
-                  />
-                </label>
+              <div className="text-sm">
+                <p className="font-medium text-[#334155]">Horario</p>
+                <p
+                  aria-label="Horario del turno"
+                  className="mt-1.5 rounded-lg border border-[#edf2f1] bg-[#f8faf9] px-3 py-2 text-[#52616b]"
+                >
+                  {selectedShiftOption
+                    ? `${minutesToTime(selectedShiftOption.start_minute)} - ${minutesToTime(selectedShiftOption.end_minute)}`
+                    : 'Selecciona un turno para ver su horario.'}
+                </p>
+                <span className="mt-1 block text-xs text-[#718096]">
+                  El horario es fijo para cada turno y no se puede editar.
+                </span>
               </div>
             )}
             {formError && <p className="text-sm text-[#b54735]">{formError}</p>}
