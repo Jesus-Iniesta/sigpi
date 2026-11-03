@@ -19,6 +19,8 @@ type FormErrors = {
 
 type FieldName = keyof FormErrors
 
+type ServerFieldName = 'category_id' | 'urgency' | 'impact'
+
 const REQUIRED_MESSAGES: Record<FieldName, string> = {
   title: 'El título es obligatorio.',
   description: 'La descripción es obligatoria.',
@@ -62,7 +64,19 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
     queryFn: getCategories,
   })
 
-  const { crear, solicitud, isPending, error: apiError } = useCrearSolicitud()
+  const {
+    crear,
+    solicitud,
+    isPending,
+    error: apiError,
+    fieldErrors: serverFieldErrors,
+    errorStatus,
+  } = useCrearSolicitud()
+  // Los errores locales mandan; si no hay, se muestra el del servidor bajo el campo.
+  const fieldError = (name: FieldName | ServerFieldName) =>
+    (name in errors ? errors[name as FieldName] : undefined) ??
+    serverFieldErrors[name]
+  const hasServerFieldErrors = Object.keys(serverFieldErrors).length > 0
 
   // Validación en línea: al salir de un campo se valida; si ya tenía error,
   // se vuelve a validar mientras el usuario escribe.
@@ -97,7 +111,8 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
   }
 
   const isUnauthenticated =
-    apiError !== null && /sesión|autorizado|401/i.test(apiError)
+    apiError !== null &&
+    (errorStatus === 401 || /sesión|autorizado|401/i.test(apiError))
 
   if (solicitud) {
     return (
@@ -162,13 +177,13 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
               placeholder="Ej. No hay conexión a la red"
               className={cn(
                 'mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-[#17212b] placeholder:text-[#94a3b8] focus:ring-2 focus:outline-none',
-                errors.title
+                fieldError('title')
                   ? 'border-red-400 focus:ring-red-200'
                   : 'border-[#d7e0df] focus:border-[#0f766e] focus:ring-[#0f766e]/20',
               )}
             />
-            {errors.title && (
-              <p className="mt-1 text-xs text-red-600">{errors.title}</p>
+            {fieldError('title') && (
+              <p className="mt-1 text-xs text-red-600">{fieldError('title')}</p>
             )}
           </div>
 
@@ -190,13 +205,15 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
               placeholder="Describe el problema con detalle…"
               className={cn(
                 'mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-[#17212b] placeholder:text-[#94a3b8] focus:ring-2 focus:outline-none',
-                errors.description
+                fieldError('description')
                   ? 'border-red-400 focus:ring-red-200'
                   : 'border-[#d7e0df] focus:border-[#0f766e] focus:ring-[#0f766e]/20',
               )}
             />
-            {errors.description && (
-              <p className="mt-1 text-xs text-red-600">{errors.description}</p>
+            {fieldError('description') && (
+              <p className="mt-1 text-xs text-red-600">
+                {fieldError('description')}
+              </p>
             )}
           </div>
 
@@ -222,14 +239,14 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
               placeholder="Ej. Edificio A, laboratorio 2"
               className={cn(
                 'mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-[#17212b] placeholder:text-[#94a3b8] focus:ring-2 focus:outline-none',
-                errors.physical_location
+                fieldError('physical_location')
                   ? 'border-red-400 focus:ring-red-200'
                   : 'border-[#d7e0df] focus:border-[#0f766e] focus:ring-[#0f766e]/20',
               )}
             />
-            {errors.physical_location && (
+            {fieldError('physical_location') && (
               <p className="mt-1 text-xs text-red-600">
-                {errors.physical_location}
+                {fieldError('physical_location')}
               </p>
             )}
           </div>
@@ -255,6 +272,11 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
                   </option>
                 ))}
               </select>
+              {fieldError('category_id') && (
+                <p className="mt-1 text-xs text-red-600">
+                  {fieldError('category_id')}
+                </p>
+              )}
             </div>
             <div>
               <label
@@ -274,6 +296,11 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
                 <option value="2">2</option>
                 <option value="3">3</option>
               </select>
+              {fieldError('urgency') && (
+                <p className="mt-1 text-xs text-red-600">
+                  {fieldError('urgency')}
+                </p>
+              )}
             </div>
             <div>
               <label
@@ -293,6 +320,11 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
                 <option value="2">2</option>
                 <option value="3">3</option>
               </select>
+              {fieldError('impact') && (
+                <p className="mt-1 text-xs text-red-600">
+                  {fieldError('impact')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -303,7 +335,7 @@ export function SolicitudForm({ onClose }: SolicitudFormProps) {
             </div>
           )}
 
-          {apiError && !isUnauthenticated && (
+          {apiError && !isUnauthenticated && !hasServerFieldErrors && (
             <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{apiError}</span>

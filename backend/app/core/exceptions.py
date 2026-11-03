@@ -29,8 +29,10 @@ class SigpiError(Exception):
     code: str = "sigpi_error"
     default_message: str = "No se pudo completar la operación."
 
-    def __init__(self, message: str | None = None) -> None:
+    def __init__(self, message: str | None = None, extra: dict | None = None) -> None:
         self.message = message or self.default_message
+        # Datos adicionales para el cliente; solo se incluyen en el cuerpo si existen.
+        self.extra = extra
         super().__init__(self.message)
 
 
@@ -96,13 +98,20 @@ def error_response(
     detail: object,
     code: str,
     headers: dict[str, str] | None = None,
+    extra: dict | None = None,
 ) -> JSONResponse:
-    """Construye el cuerpo uniforme de error."""
-    return JSONResponse(
-        status_code=status_code,
-        content={"detail": detail, "code": code, "request_id": _request_id(request)},
-        headers=headers,
-    )
+    """Construye el cuerpo uniforme de error.
+
+    `extra` solo aparece en el cuerpo cuando el error lo trae; el resto conserva el formato.
+    """
+    content: dict[str, object] = {
+        "detail": detail,
+        "code": code,
+        "request_id": _request_id(request),
+    }
+    if extra:
+        content["extra"] = extra
+    return JSONResponse(status_code=status_code, content=content, headers=headers)
 
 
 async def _handle_sigpi_error(request: Request, exc: Exception) -> JSONResponse:
@@ -116,7 +125,7 @@ async def _handle_sigpi_error(request: Request, exc: Exception) -> JSONResponse:
         path=request.url.path,
         request_id=_request_id(request),
     )
-    return error_response(request, exc.status_code, exc.message, exc.code)
+    return error_response(request, exc.status_code, exc.message, exc.code, extra=exc.extra)
 
 
 async def _handle_http_exception(request: Request, exc: Exception) -> JSONResponse:

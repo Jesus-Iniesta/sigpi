@@ -3,6 +3,12 @@ import { AlertCircle, Clock, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import type { WaitReason } from '@/api/types'
 import { Button } from '@/shared/ui/button'
+import { ErrorAlert } from '@/shared/ui/error-alert'
+import {
+  getErrorMessage,
+  getFieldErrors,
+  isApiError,
+} from '@/shared/lib/error-messages'
 import { cn } from '@/shared/lib/utils'
 
 type EsperaDialogProps = {
@@ -45,7 +51,7 @@ export function EsperaDialog({
   const [reason, setReason] = useState<ReasonOption>('external_input')
   const [detail, setDetail] = useState<string | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [apiError, setApiError] = useState<string | null>(null)
+  const [apiError, setApiError] = useState<unknown>(null)
 
   const showDetail = reason === 'other'
 
@@ -55,7 +61,7 @@ export function EsperaDialog({
       onClose()
     },
     onError: (error: Error) => {
-      setApiError(error.message)
+      setApiError(error)
     },
   })
 
@@ -69,7 +75,14 @@ export function EsperaDialog({
   }
 
   const isUnauthenticated =
-    apiError !== null && /sesión|autorizado|401/i.test(apiError)
+    apiError !== null &&
+    (isApiError(apiError)
+      ? apiError.status === 401
+      : /sesión|autorizado|401/i.test(getErrorMessage(apiError)))
+  // Errores de validación del servidor, pintados bajo su campo.
+  const serverFieldErrors = getFieldErrors(apiError)
+  const detailError = errors.detail ?? serverFieldErrors.detail
+  const hasFieldErrors = Object.keys(serverFieldErrors).length > 0
 
   if (!open) return null
 
@@ -120,6 +133,11 @@ export function EsperaDialog({
                 </option>
               ))}
             </select>
+            {serverFieldErrors.reason && (
+              <p className="mt-1 text-xs text-red-600">
+                {serverFieldErrors.reason}
+              </p>
+            )}
           </div>
 
           {showDetail && (
@@ -138,13 +156,13 @@ export function EsperaDialog({
                 placeholder="Ej. Pendiente de repuesto del proveedor…"
                 className={cn(
                   'mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-[#17212b] placeholder:text-[#94a3b8] focus:ring-2 focus:outline-none',
-                  errors.detail
+                  detailError
                     ? 'border-red-400 focus:ring-red-200'
                     : 'border-[#d7e0df] focus:border-[#0f766e] focus:ring-[#0f766e]/20',
                 )}
               />
-              {errors.detail && (
-                <p className="mt-1 text-xs text-red-600">{errors.detail}</p>
+              {detailError && (
+                <p className="mt-1 text-xs text-red-600">{detailError}</p>
               )}
             </div>
           )}
@@ -156,11 +174,8 @@ export function EsperaDialog({
             </div>
           )}
 
-          {apiError && !isUnauthenticated && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <span>{apiError}</span>
-            </div>
+          {apiError !== null && !isUnauthenticated && !hasFieldErrors && (
+            <ErrorAlert error={apiError} />
           )}
 
           {confirmMutation.isSuccess && (

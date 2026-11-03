@@ -1,18 +1,43 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Activity, AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import {
+  Activity,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Info,
+  KeyRound,
+  Lock,
+  Mail,
+} from 'lucide-react'
 import { useAuth } from './auth-context'
 import { Button } from '@/shared/ui/button'
+import { ERROR_CODE_MESSAGES, isApiError } from '@/shared/lib/error-messages'
+import { ErrorAlert } from '@/shared/ui/error-alert'
 import { cn } from '@/shared/lib/utils'
 
+const SESSION_EXPIRED_MESSAGE = 'Tu sesión expiró'
+
+function loginErrorMessage(error: unknown): string | null {
+  if (isApiError(error) && error.code === 'inactive_account') {
+    return ERROR_CODE_MESSAGES.inactive_account
+  }
+  return null
+}
+
 export function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const { login, isAuthenticated, isLoading, sessionExpired } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const offerPasswordRecovery =
+    isApiError(error) &&
+    error.code === 'invalid_credentials' &&
+    error.extra.offer_password_recovery === true
+  const customMessage = loginErrorMessage(error)
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/" replace />
@@ -26,7 +51,7 @@ export function LoginPage() {
       await login(email, password)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión.')
+      setError(err)
     } finally {
       setIsSubmitting(false)
     }
@@ -133,10 +158,40 @@ export function LoginPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
+            {sessionExpired && error === null && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+              >
+                <Info size={16} className="mt-0.5 shrink-0" />
+                <span>{SESSION_EXPIRED_MESSAGE}</span>
+              </div>
+            )}
+
+            {error !== null &&
+              (customMessage ? (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700"
+                >
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <span>{customMessage}</span>
+                </div>
+              ) : (
+                <ErrorAlert error={error} fallback="Error al iniciar sesión." />
+              ))}
+
+            {offerPasswordRecovery && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-lg bg-[#eef6f5] px-3 py-2.5 text-sm text-[#0f4f4a]"
+              >
+                <KeyRound size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  Has superado el número de intentos permitidos. ¿Olvidaste tu
+                  contraseña? Solicita su recuperación al administrador del
+                  sistema.
+                </span>
               </div>
             )}
 

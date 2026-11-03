@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCategories, type Category } from '@/api/catalog'
+import { ApiError } from '@/api/client'
 import { createAssistedRequest, type Request } from '@/api/solicitudes'
 import { getUsers, type User } from '@/api/usuarios'
 import { RegistroAsistidoPage } from './registro-asistido-page'
@@ -226,6 +227,28 @@ describe('RegistroAsistidoPage: registro asistido (S3-09, HU-01.3)', () => {
       await screen.findByText('No tienes permiso para realizar esta acción.'),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Título')).toBeInTheDocument()
+  })
+
+  it('pinta bajo su campo los errores de validación del servidor', async () => {
+    createAssistedMock.mockRejectedValue(
+      new ApiError(422, 'title: String should have at most 120 characters', {
+        code: 'validation_error',
+        requestId: 'req-422',
+        fieldErrors: { title: 'Debe tener como máximo 120 caracteres' },
+      }),
+    )
+    renderPage()
+    const user = userEvent.setup()
+
+    await fillValidForm(user)
+    await user.click(
+      screen.getByRole('button', { name: 'Registrar solicitud' }),
+    )
+
+    expect(
+      await screen.findByText('Debe tener como máximo 120 caracteres'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/String should have/)).not.toBeInTheDocument()
   })
 
   it('"Registrar otra solicitud" regresa al formulario vacío', async () => {

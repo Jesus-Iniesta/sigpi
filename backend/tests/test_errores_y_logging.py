@@ -81,6 +81,10 @@ def client(logs) -> TestClient:
     async def prohibido():
         raise PermissionDeniedError()
 
+    @app.get("/con-extra")
+    async def con_extra():
+        raise AuthenticationError("Correo o contraseña incorrectos.", extra={"intentos": 3})
+
     @app.get("/http-401")
     async def http_401():
         raise HTTPException(
@@ -137,6 +141,14 @@ def test_excepcion_sin_mensaje_usa_el_mensaje_por_defecto(client):
     body = client.get("/conflicto").json()
 
     assert "conflicto" in body["detail"]
+
+
+def test_excepcion_con_extra_lo_incluye_en_el_cuerpo(client):
+    body = client.get("/con-extra").json()
+
+    assert set(body) == {"detail", "code", "request_id", "extra"}
+    assert body["extra"] == {"intentos": 3}
+    assert body["code"] == "unauthenticated"
 
 
 # --- Errores de FastAPI que ya existían ---------------------------------------------------

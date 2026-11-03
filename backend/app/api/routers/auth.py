@@ -1,7 +1,6 @@
 """HTTP endpoints de autenticación (S3-03, HU-01.1)."""
 
 from fastapi import APIRouter, Depends, Response, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
@@ -11,11 +10,7 @@ from app.models.identity import User
 from app.repositories.auth_repository import AuthRepository
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.identity import UserRead
-from app.services.auth_service import (
-    AuthService,
-    InactiveAccountError,
-    InvalidCredentialsError,
-)
+from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,19 +40,9 @@ async def login(
     response: Response,
     service: AuthService = Depends(get_auth_service),
 ):
-    try:
-        token, user = await service.login(payload.email, payload.password)
-    except InvalidCredentialsError as exc:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "detail": str(exc),
-                "failed_attempts": exc.failed_attempts,
-                "offer_password_recovery": exc.offer_password_recovery,
-            },
-        )
-    except InactiveAccountError as exc:
-        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)})
+    # Las credenciales inválidas y la cuenta desactivada son `SigpiError`: las convierte
+    # el manejador global con el formato uniforme (`detail`, `code`, `request_id`, `extra`).
+    token, user = await service.login(payload.email, payload.password)
     _set_auth_cookie(response, token)
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
