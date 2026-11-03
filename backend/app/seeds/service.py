@@ -2,10 +2,12 @@ from collections.abc import Iterable
 
 from sqlalchemy import select
 
+from app.core.security import hash_password
 from app.models.catalog import AreaServicio, Categoria
 from app.models.enums import Priority
+from app.models.identity import Role, User, UserRole
 from app.models.organization import OrganizationalUnit
-from app.seeds.data import CATEGORY_SEEDS, PRIORITY_SEEDS
+from app.seeds.data import CATEGORY_SEEDS, PRIORITY_SEEDS, USER_SEEDS
 
 
 def _session_factory():
@@ -87,16 +89,62 @@ async def run_seed_priorities() -> tuple[Priority, ...]:
     return PRIORITY_SEEDS
 
 
+async def run_seed_users() -> int:
+    """Create default user accounts for entering the system.
+
+    Idempotent: skips users whose institutional_id already exists.
+    Each seed user is assigned exactly one role via UserRole.
+    """
+    async with _session_factory()() as session:
+        created = 0
+        for data in USER_SEEDS:
+            existing = await session.scalar(
+                select(User).where(User.institutional_id == data["institutional_id"])
+            )
+            if existing is not None:
+                continue
+
+            user = User(
+                institutional_id=data["institutional_id"],
+                full_name=data["full_name"],
+                email=data["email"],
+                password_hash=hash_password(data["password"]),
+                user_type=data["user_type"],
+                support_level=data["support_level"],
+                is_active=True,
+            )
+            session.add(user)
+            await session.flush()
+
+            role = await session.scalar(
+                select(Role).where(Role.name == data["role"])
+            )
+            if role is None:
+                raise ValueError(
+                    f"Role {data['role']!r} does not exist; seed identity roles first."
+                )
+
+            session.add(
+                UserRole(user_id=user.id, role_id=role.id)
+            )
+            created += 1
+
+        await session.commit()
+        return created
+
+
 async def run_all(area_name: str = "Soporte técnico") -> dict[str, int]:
     units = await run_seed_organizational_units()
     areas = await run_seed_area(area_name)
     categories = await run_seed_categories(area_name)
     priorities = await run_seed_priorities()
+    users = await run_seed_users()
     return {
         "organizational_units": units,
         "areas": areas,
         "categories": categories,
         "priorities": len(priorities),
+        "users": users,
     }
 
 

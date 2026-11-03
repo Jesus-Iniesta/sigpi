@@ -9,10 +9,13 @@ from app.seeds.service import (
     run_seed_categories,
     run_seed_organizational_units,
     run_seed_priorities,
+    run_seed_users,
     supported_priorities,
 )
 
-app = typer.Typer(help="Seeds: Organizational units, areas, categories and priorities")
+app = typer.Typer(
+    help="Seeds: Organizational units, areas, categories, priorities and users"
+)
 
 
 def run_async(coro) -> object:
@@ -55,6 +58,12 @@ def area(
 def priorities():
     run_async(run_seed_priorities())
     typer.echo(f"Priorities seed completed: {', '.join(supported_priorities())}.")
+
+
+@app.command("users")
+def users():
+    n = run_async(run_seed_users())
+    typer.echo(f"Users seed completed ({n} created).")
 
 
 if __name__ == "__main__":
