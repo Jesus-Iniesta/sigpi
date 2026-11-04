@@ -40,6 +40,23 @@ export interface paths {
     patch: operations['update_user_usuarios__user_id__patch']
     trace?: never
   }
+  '/catalog/options': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Options */
+    get: operations['list_options_catalog_options_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/catalog/areas': {
     parameters: {
       query?: never
@@ -237,6 +254,21 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /**
+     * CatalogOptionsRead
+     * @description Listas cerradas del catálogo para que el frontend no las duplique.
+     */
+    CatalogOptionsRead: {
+      /** Service Areas */
+      service_areas: string[]
+      /** Categories */
+      categories: string[]
+      /** Specialties */
+      specialties: components['schemas']['SpecialtyOptionsRead'][]
+      /** Shifts */
+      shifts: components['schemas']['ShiftOptionRead'][]
+      max_load: components['schemas']['MaxLoadRange']
+    }
     /** CategoryCreate */
     CategoryCreate: {
       /**
@@ -301,6 +333,13 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
+    }
+    /** MaxLoadRange */
+    MaxLoadRange: {
+      /** Min */
+      min: number
+      /** Max */
+      max: number
     }
     /**
      * Priority
@@ -469,9 +508,14 @@ export interface components {
     }
     /**
      * ShiftCreate
-     * @description Shift expressed in minutes from midnight (e.g. 07:00 = 420).
+     * @description Solo se envía el nombre; el servidor fija el horario del turno predefinido.
      */
     ShiftCreate: {
+      /** Name */
+      name: string
+    }
+    /** ShiftOptionRead */
+    ShiftOptionRead: {
       /** Name */
       name: string
       /** Start Minute */
@@ -582,7 +626,10 @@ export interface components {
       /** Valid To */
       valid_to: string | null
     }
-    /** SpecialtyCreate */
+    /**
+     * SpecialtyCreate
+     * @description El nombre se valida contra la categoría en `CatalogService` (necesita consultarla).
+     */
     SpecialtyCreate: {
       /**
        * Category Id
@@ -591,6 +638,13 @@ export interface components {
       category_id: string
       /** Name */
       name: string
+    }
+    /** SpecialtyOptionsRead */
+    SpecialtyOptionsRead: {
+      /** Category */
+      category: string
+      /** Names */
+      names: string[]
     }
     /** SpecialtyRead */
     SpecialtyRead: {
@@ -851,6 +905,26 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_options_catalog_options_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CatalogOptionsRead']
         }
       }
     }
