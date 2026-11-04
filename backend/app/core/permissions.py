@@ -13,6 +13,7 @@ class Permission(StrEnum):
     CLASSIFICATION_REVIEW = "classification.review"
     SLA_READ = "sla.read"
     SLA_MANAGE = "sla.manage"
+    SLA_CONTRACT_DOWNLOAD = "sla.contract_download"
     KNOWLEDGE_READ = "knowledge.read"
     KNOWLEDGE_MANAGE = "knowledge.manage"
     INVENTORY_READ = "inventory.read"
@@ -100,7 +101,12 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
         }
     ),
     RoleName.REQUESTER: frozenset(
-        {Permission.REQUESTS_READ, Permission.REQUESTS_CREATE, Permission.KNOWLEDGE_READ}
+        {
+            Permission.REQUESTS_READ,
+            Permission.REQUESTS_CREATE,
+            Permission.KNOWLEDGE_READ,
+            Permission.SLA_CONTRACT_DOWNLOAD,
+        }
     ),
 }
 
