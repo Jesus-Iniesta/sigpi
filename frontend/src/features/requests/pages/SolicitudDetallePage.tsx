@@ -12,6 +12,7 @@ import {
 } from '@/features/requests/request-labels'
 import { useSolicitudDetalle } from '@/features/requests/use-solicitud-detalle'
 import { cn } from '@/shared/lib/utils'
+import { getErrorMessage } from '@/shared/lib/error-messages'
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -114,7 +115,7 @@ export function SolicitudDetallePage() {
       <div className="space-y-4">
         {backLink}
         <ErrorMessage
-          message={`No se pudo cargar la solicitud. ${detalle.error.message}`}
+          message={`No se pudo cargar la solicitud. ${getErrorMessage(detalle.error)}`}
         />
       </div>
     )
@@ -238,7 +239,7 @@ export function SolicitudDetallePage() {
           )}
           {bitacora.isError && (
             <ErrorMessage
-              message={`No se pudo cargar la bitácora. ${bitacora.error.message}`}
+              message={`No se pudo cargar la bitácora. ${getErrorMessage(bitacora.error)}`}
             />
           )}
           {bitacora.isSuccess && bitacora.data.length === 0 && (

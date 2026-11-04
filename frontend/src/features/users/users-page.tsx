@@ -16,6 +16,7 @@ import {
   updateUser,
 } from '@/api/usuarios'
 import { Button } from '@/shared/ui/button'
+import { getErrorMessage } from '@/shared/lib/error-messages'
 
 const roles: { value: UserRole; label: string }[] = [
   { value: 'administrator', label: 'Administrador' },
@@ -43,10 +44,6 @@ const emptyForm: UserForm = {
   password: '',
   role: 'requester',
   max_load: '',
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
 }
 
 function UserFormFields({

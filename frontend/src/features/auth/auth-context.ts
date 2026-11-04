@@ -5,6 +5,8 @@ type AuthContextValue = {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
+  /** La sesión se cerró porque el servidor respondió 401 (COR-07). */
+  sessionExpired: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }

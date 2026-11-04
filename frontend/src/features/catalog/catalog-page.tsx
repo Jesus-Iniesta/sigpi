@@ -26,6 +26,7 @@ import {
   type Technician,
 } from '@/api/catalog'
 import { Button } from '@/shared/ui/button'
+import { getErrorMessage } from '@/shared/lib/error-messages'
 
 type CatalogTab = 'technicians' | 'catalog'
 type CatalogFormType = 'area' | 'category' | 'specialty' | 'shift'
@@ -56,7 +57,7 @@ function cleanDescription(value: FormDataEntryValue | null) {
 const REGISTERED_LABEL = 'ya registrada'
 
 function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
+  return getErrorMessage(error, fallback)
 }
 
 function Modal({

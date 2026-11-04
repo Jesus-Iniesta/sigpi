@@ -12,6 +12,7 @@ import {
   type SlaVersionInput,
 } from '@/api/sla'
 import { Button } from '@/shared/ui/button'
+import { getErrorMessage } from '@/shared/lib/error-messages'
 import {
   useCreateSlaAgreement,
   useEffectiveSlaLookup,
@@ -45,7 +46,7 @@ function toLocalInput(date: Date) {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : ''
+  return error ? getErrorMessage(error) : ''
 }
 
 // ---------------------------------------------------------------------------

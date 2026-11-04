@@ -10,6 +10,12 @@ import {
 } from '@/api/solicitudes'
 import { getUsers, type User } from '@/api/usuarios'
 import { Button } from '@/shared/ui/button'
+import { ErrorAlert } from '@/shared/ui/error-alert'
+import {
+  getErrorMessage,
+  getFieldErrors,
+  isApiError,
+} from '@/shared/lib/error-messages'
 import { cn } from '@/shared/lib/utils'
 
 type FormErrors = {
@@ -18,6 +24,23 @@ type FormErrors = {
   title?: string
   description?: string
   physical_location?: string
+  category?: string
+  urgency?: string
+  impact?: string
+}
+
+/** Lleva los errores por campo del servidor a los nombres del formulario. */
+function serverFormErrors(fieldErrors: Record<string, string>): FormErrors {
+  return {
+    requester: fieldErrors.requester_id,
+    channel: fieldErrors.channel,
+    title: fieldErrors.title,
+    description: fieldErrors.description,
+    physical_location: fieldErrors.physical_location,
+    category: fieldErrors.category_id,
+    urgency: fieldErrors.urgency,
+    impact: fieldErrors.impact,
+  }
 }
 
 const channelOptions: { value: AssistedChannel; label: string }[] = [
@@ -75,8 +98,8 @@ export function RegistroAsistidoPage() {
   const [categoryId, setCategoryId] = useState('')
   const [urgency, setUrgency] = useState('')
   const [impact, setImpact] = useState('')
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [apiError, setApiError] = useState<string | null>(null)
+  const [localErrors, setErrors] = useState<FormErrors>({})
+  const [apiError, setApiError] = useState<unknown>(null)
   const [created, setCreated] = useState<Request | null>(null)
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: getUsers })
@@ -93,7 +116,7 @@ export function RegistroAsistidoPage() {
   const createMutation = useMutation({
     mutationFn: createAssistedRequest,
     onSuccess: (request) => setCreated(request),
-    onError: (error: Error) => setApiError(error.message),
+    onError: (error: Error) => setApiError(error),
   })
 
   const resetForm = () => {
@@ -139,7 +162,14 @@ export function RegistroAsistidoPage() {
   }
 
   const isUnauthenticated =
-    apiError !== null && /sesión|autorizado|401/i.test(apiError)
+    apiError !== null &&
+    (isApiError(apiError)
+      ? apiError.status === 401
+      : /sesión|autorizado|401/i.test(getErrorMessage(apiError)))
+  // Los errores de validación del servidor se pintan bajo su campo; los locales mandan.
+  const serverErrors = serverFormErrors(getFieldErrors(apiError))
+  const hasServerFieldErrors = Object.values(serverErrors).some(Boolean)
+  const errors: FormErrors = { ...serverErrors, ...localErrors }
 
   if (created) {
     return (
@@ -408,7 +438,7 @@ export function RegistroAsistidoPage() {
               id="asistido-category"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className={cn(inputClass, inputOk)}
+              className={cn(inputClass, errors.category ? inputError : inputOk)}
             >
               <option value="">Sin categoría</option>
               {categories?.map((cat) => (
@@ -417,6 +447,9 @@ export function RegistroAsistidoPage() {
                 </option>
               ))}
             </select>
+            {errors.category && (
+              <p className="mt-1 text-xs text-red-600">{errors.category}</p>
+            )}
           </div>
           <div>
             <label
@@ -429,13 +462,16 @@ export function RegistroAsistidoPage() {
               id="asistido-urgency"
               value={urgency}
               onChange={(e) => setUrgency(e.target.value)}
-              className={cn(inputClass, inputOk)}
+              className={cn(inputClass, errors.urgency ? inputError : inputOk)}
             >
               <option value="">—</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
             </select>
+            {errors.urgency && (
+              <p className="mt-1 text-xs text-red-600">{errors.urgency}</p>
+            )}
           </div>
           <div>
             <label
@@ -448,13 +484,16 @@ export function RegistroAsistidoPage() {
               id="asistido-impact"
               value={impact}
               onChange={(e) => setImpact(e.target.value)}
-              className={cn(inputClass, inputOk)}
+              className={cn(inputClass, errors.impact ? inputError : inputOk)}
             >
               <option value="">—</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
             </select>
+            {errors.impact && (
+              <p className="mt-1 text-xs text-red-600">{errors.impact}</p>
+            )}
           </div>
         </div>
 
@@ -465,11 +504,8 @@ export function RegistroAsistidoPage() {
           </div>
         )}
 
-        {apiError && !isUnauthenticated && (
-          <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
-            <AlertCircle size={16} className="mt-0.5 shrink-0" />
-            <span>{apiError}</span>
-          </div>
+        {apiError !== null && !isUnauthenticated && !hasServerFieldErrors && (
+          <ErrorAlert error={apiError} />
         )}
 
         <div className="flex justify-end gap-3 pt-2">
