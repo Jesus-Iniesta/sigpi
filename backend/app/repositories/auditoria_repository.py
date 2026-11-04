@@ -16,10 +16,30 @@ class AuditoriaRepository:
         self._session = session
 
     async def add(self, entry: Auditoria) -> Auditoria:
+        """Agrega el registro a la transacción en curso sin confirmarla.
+
+        Solo hace `flush`: el servicio que orquesta el cambio de negocio confirma
+        ambos en el mismo `commit`, así que si uno falla no se guarda ninguno.
+        """
         self._session.add(entry)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(entry)
         return entry
+
+    async def list_entries(
+        self,
+        *,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+    ) -> list[Auditoria]:
+        """Registros en orden cronológico, filtrados por tipo o id de entidad."""
+        query = select(Auditoria)
+        if entity_type is not None:
+            query = query.where(Auditoria.entity_type == entity_type)
+        if entity_id is not None:
+            query = query.where(Auditoria.entity_id == entity_id)
+        result = await self._session.scalars(query.order_by(Auditoria.created_at, Auditoria.id))
+        return list(result)
 
     async def list_for_entity(
         self,

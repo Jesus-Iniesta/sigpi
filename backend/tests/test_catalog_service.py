@@ -41,6 +41,19 @@ class FakeRepo:
         self.items[item.id] = item
         return item
 
+    async def commit(self):
+        return None
+
+
+class FakeAuditoria:
+    """Bitácora en memoria: guarda los cambios que registra el servicio."""
+
+    def __init__(self) -> None:
+        self.entries: list[dict] = []
+
+    async def registrar(self, contexto, **entry):
+        self.entries.append({"contexto": contexto, **entry})
+
 
 def _service(*, areas=None, categories=None, specialties=None, shifts=None, technicians=None):
     return CatalogService(
@@ -49,6 +62,7 @@ def _service(*, areas=None, categories=None, specialties=None, shifts=None, tech
         specialties=FakeRepo(specialties),
         shifts=FakeRepo(shifts),
         technicians=FakeRepo(technicians),
+        auditoria=FakeAuditoria(),
     )
 
 

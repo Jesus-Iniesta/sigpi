@@ -83,3 +83,33 @@ async def test_historial_de_entidad_conserva_el_orden_de_los_cambios(service) ->
 
     assert [item.action for item in history] == ["user.created", "user.deactivated"]
     assert history[1].old_values == {"is_active": True}
+
+
+@pytest.mark.asyncio
+async def test_registrar_no_confirma_la_transaccion(service) -> None:
+    """El repositorio solo hace `flush`: quien orquesta el cambio hace el `commit`."""
+    audit_service, session = service
+    entry = await audit_service.registrar_cambio(
+        actor_id=None, action="usuario.creado", entity_type="user", entity_id=uuid.uuid4()
+    )
+
+    await session.rollback()
+
+    assert await session.get(Auditoria, entry.id) is None
+
+
+@pytest.mark.asyncio
+async def test_registrar_elimina_datos_sensibles_de_los_valores(service) -> None:
+    audit_service, _session = service
+
+    entry = await audit_service.registrar_cambio(
+        actor_id=None,
+        action="usuario.modificado",
+        entity_type="user",
+        entity_id=uuid.uuid4(),
+        old_values={"password_hash": "$2b$viejo", "max_load": 1},
+        new_values={"password_hash": "$2b$nuevo", "max_load": 2},
+    )
+
+    assert entry.old_values == {"max_load": 1}
+    assert entry.new_values == {"max_load": 2}

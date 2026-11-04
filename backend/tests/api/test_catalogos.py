@@ -7,6 +7,7 @@ catálogo queda disponible en la siguiente consulta sin reiniciar la aplicación
 
 import asyncio
 import uuid
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,12 +15,24 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app.api.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import app as fastapi_app
 from app.models.enums import UserType
 from app.models.identity import User
 from app.models.organization import OrganizationalUnit
+
+ADMIN_ID = uuid.uuid4()
+
+
+def _administrador() -> SimpleNamespace:
+    """Usuario en sesión con rol de administrador (lo que consulta `require_permission`)."""
+    return SimpleNamespace(
+        id=ADMIN_ID,
+        is_active=True,
+        roles=[SimpleNamespace(role=SimpleNamespace(name="administrator"))],
+    )
 
 
 @pytest.fixture
@@ -64,6 +77,7 @@ def catalog_client():
             yield session
 
     fastapi_app.dependency_overrides[get_session] = override_session
+    fastapi_app.dependency_overrides[get_current_user] = _administrador
     try:
         yield TestClient(fastapi_app), unit_id, technician_id
     finally:

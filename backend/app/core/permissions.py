@@ -25,6 +25,7 @@ class Permission(StrEnum):
     IDENTITY_READ = "identity.read"
     IDENTITY_MANAGE = "identity.manage"
     REPORTS_READ = "reports.read"
+    AUDIT_READ = "audit.read"
 
 
 class RoleName(StrEnum):
@@ -98,6 +99,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.CATALOG_READ,
             Permission.IDENTITY_READ,
             Permission.REPORTS_READ,
+            Permission.AUDIT_READ,
         }
     ),
     RoleName.REQUESTER: frozenset(

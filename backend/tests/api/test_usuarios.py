@@ -8,6 +8,8 @@ de pruebas de S4-01.
 """
 
 import asyncio
+import uuid
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app.api.dependencies import get_current_user
 from app.core.permissions import RoleName
 from app.db.base import Base
 from app.db.session import get_session
@@ -23,6 +26,18 @@ from app.models.identity import Role
 
 KNOWN_ACCOUNT = "uaem2026001"
 VALID_PASSWORD = "ClaveSegura#2026"
+
+
+ADMIN_ID = uuid.uuid4()
+
+
+def _administrador() -> SimpleNamespace:
+    """Usuario en sesión con rol de administrador (lo que consulta `require_permission`)."""
+    return SimpleNamespace(
+        id=ADMIN_ID,
+        is_active=True,
+        roles=[SimpleNamespace(role=SimpleNamespace(name="administrator"))],
+    )
 
 
 @pytest.fixture
@@ -48,6 +63,7 @@ def client():
             yield session
 
     fastapi_app.dependency_overrides[get_session] = override_session
+    fastapi_app.dependency_overrides[get_current_user] = _administrador
     try:
         yield TestClient(fastapi_app)
     finally:

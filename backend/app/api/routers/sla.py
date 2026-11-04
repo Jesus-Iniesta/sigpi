@@ -4,11 +4,12 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import require_permission
+from app.api.dependencies import AuditContext, get_audit_context, require_permission
 from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.enums import Priority
 from app.models.identity import User
+from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import (
     EffectiveSlaRead,
@@ -18,6 +19,7 @@ from app.schemas.sla import (
     SlaVersionCreate,
     SlaVersionRead,
 )
+from app.services.auditoria_service import AuditoriaService
 from app.services.contrato_sla_service import ContratoSlaService
 from app.services.sla_service import SlaService
 
@@ -27,7 +29,7 @@ router = APIRouter(prefix="/sla", tags=["sla"])
 
 
 def get_sla_service(session: AsyncSession = Depends(get_session)) -> SlaService:
-    return SlaService(SlaRepository(session))
+    return SlaService(SlaRepository(session), AuditoriaService(AuditoriaRepository(session)))
 
 
 def get_contrato_sla_service(
@@ -47,11 +49,18 @@ async def list_agreements(service: SlaService = Depends(get_sla_service)):
     return await service.list_agreements()
 
 
-@router.post("/agreements", response_model=SlaAgreementRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/agreements",
+    response_model=SlaAgreementRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission(Permission.SLA_MANAGE))],
+)
 async def create_agreement(
-    payload: SlaAgreementCreate, service: SlaService = Depends(get_sla_service)
+    payload: SlaAgreementCreate,
+    service: SlaService = Depends(get_sla_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
-    return await service.create_agreement(payload)
+    return await service.create_agreement(payload, contexto)
 
 
 @router.get("/agreements/{agreement_id}/versions", response_model=list[SlaVersionRead])
@@ -67,13 +76,15 @@ async def list_versions(
     "/agreements/{agreement_id}/versions",
     response_model=list[SlaVersionRead],
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission(Permission.SLA_MANAGE))],
 )
 async def publish_version(
     agreement_id: uuid.UUID,
     payload: SlaVersionCreate,
     service: SlaService = Depends(get_sla_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
-    return await service.publish_version(agreement_id, payload)
+    return await service.publish_version(agreement_id, payload, contexto)
 
 
 @router.get(
