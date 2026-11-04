@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.security import INSTITUTIONAL_EMAIL_DOMAIN, is_institutional_email
+from app.core.security import is_institutional_email
 from app.schemas.identity import UserRead
 
 
@@ -17,9 +17,7 @@ class LoginRequest(BaseModel):
     def _institutional_email(cls, value: str) -> str:
         value = value.strip()
         if not is_institutional_email(value):
-            raise ValueError(
-                f"El correo debe tener el formato usuario@{INSTITUTIONAL_EMAIL_DOMAIN}."
-            )
+            raise ValueError("El correo debe ser institucional (@uaemex.mx o @alumno.uaemex.mx).")
         return value.lower()
 
 

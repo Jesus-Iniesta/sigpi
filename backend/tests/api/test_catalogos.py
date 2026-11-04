@@ -74,28 +74,32 @@ def catalog_client():
 def _create_catalog(client: TestClient, unit_id: uuid.UUID) -> tuple[str, str, str, str]:
     area = client.post(
         "/catalog/areas",
-        json={"unit_id": str(unit_id), "name": "Redes", "description": "Conectividad"},
+        json={
+            "unit_id": str(unit_id),
+            "name": "Infraestructura y redes",
+            "description": "Conectividad",
+        },
     )
     assert area.status_code == 201, area.text
     area_id = area.json()["id"]
 
     category = client.post(
         "/catalog/categories",
-        json={"area_id": area_id, "name": "Conmutación", "description": "Switches"},
+        json={"area_id": area_id, "name": "Redes", "description": "Switches"},
     )
     assert category.status_code == 201, category.text
     category_id = category.json()["id"]
 
     specialty = client.post(
         "/catalog/specialties",
-        json={"category_id": category_id, "name": "VLAN"},
+        json={"category_id": category_id, "name": "Red cableada"},
     )
     assert specialty.status_code == 201, specialty.text
     specialty_id = specialty.json()["id"]
 
     shift = client.post(
         "/catalog/shifts",
-        json={"name": "Matutino", "start_minute": 420, "end_minute": 900},
+        json={"name": "Matutino"},
     )
     assert shift.status_code == 201, shift.text
     return area_id, category_id, specialty_id, shift.json()["id"]
@@ -186,3 +190,143 @@ def test_actualizacion_rechaza_referencias_no_vigentes(catalog_client) -> None:
     assert "does not exist" in missing_shift.json()["detail"]
     assert missing_specialty.status_code == 422
     assert "unknown specialties" in missing_specialty.json()["detail"]
+
+
+# --- COR-04: opciones predefinidas ------------------------------------------------
+
+
+def _create_category(client: TestClient, unit_id: uuid.UUID, name: str) -> str:
+    area = client.post(
+        "/catalog/areas", json={"unit_id": str(unit_id), "name": "Soporte a usuarios"}
+    )
+    assert area.status_code == 201, area.text
+    category = client.post("/catalog/categories", json={"area_id": area.json()["id"], "name": name})
+    assert category.status_code == 201, category.text
+    return category.json()["id"]
+
+
+def test_opciones_del_catalogo_se_publican(catalog_client) -> None:
+    client, _unit_id, _ = catalog_client
+
+    response = client.get("/catalog/options")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert "Soporte a usuarios" in body["service_areas"]
+    assert body["categories"] == ["Hardware", "Software", "Redes", "Cuentas y accesos"]
+    hardware = next(group for group in body["specialties"] if group["category"] == "Hardware")
+    assert "Equipo de cómputo" in hardware["names"]
+    assert {"name": "Matutino", "start_minute": 420, "end_minute": 900} in body["shifts"]
+    assert body["max_load"] == {"min": 1, "max": 15}
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["VLAN", "Equipo de cómputo"],  # fuera de la lista / de otra categoría (Hardware)
+)
+def test_especialidad_fuera_de_la_lista_de_su_categoria_responde_422(
+    catalog_client, name: str
+) -> None:
+    client, unit_id, _ = catalog_client
+    category_id = _create_category(client, unit_id, "Redes")
+
+    response = client.post("/catalog/specialties", json={"category_id": category_id, "name": name})
+
+    assert response.status_code == 422, response.text
+    body = response.json()
+    assert body["code"] == "catalog_option_not_allowed"
+    assert "Red cableada" in body["detail"]
+
+
+@pytest.mark.parametrize(
+    ("path", "field", "value"),
+    [
+        ("/catalog/areas", "name", "Mesa de ayuda"),
+        ("/catalog/categories", "name", "Impresoras"),
+        ("/catalog/shifts", "name", "Nocturno"),
+    ],
+)
+def test_nombres_fuera_de_la_lista_responden_422(
+    catalog_client, path: str, field: str, value: str
+) -> None:
+    client, unit_id, _ = catalog_client
+    payload: dict[str, str] = {field: value}
+    if path == "/catalog/areas":
+        payload["unit_id"] = str(unit_id)
+    elif path == "/catalog/categories":
+        payload["area_id"] = str(uuid.uuid4())
+
+    response = client.post(path, json=payload)
+
+    assert response.status_code == 422, response.text
+    assert response.json()["code"] == "catalog_option_not_allowed"
+    assert "Valores permitidos" in response.json()["detail"]
+
+
+def test_turno_matutino_toma_el_horario_del_servidor(catalog_client) -> None:
+    client, _unit_id, _ = catalog_client
+
+    response = client.post("/catalog/shifts", json={"name": "Matutino"})
+
+    assert response.status_code == 201, response.text
+    assert response.json()["start_minute"] == 7 * 60
+    assert response.json()["end_minute"] == 15 * 60
+
+
+def test_turno_ya_no_acepta_horario_del_cliente(catalog_client) -> None:
+    client, _unit_id, _ = catalog_client
+
+    response = client.post(
+        "/catalog/shifts", json={"name": "Matutino", "start_minute": 0, "end_minute": 60}
+    )
+
+    assert response.status_code == 422, response.text
+
+
+@pytest.mark.parametrize(
+    "description",
+    ["<script>alert(1)</script>", "texto con \x00 nulo", "salto\x1bescape", "x" * 301],
+)
+def test_descripcion_invalida_responde_422(catalog_client, description: str) -> None:
+    client, unit_id, _ = catalog_client
+
+    response = client.post(
+        "/catalog/areas",
+        json={"unit_id": str(unit_id), "name": "Soporte a usuarios", "description": description},
+    )
+
+    assert response.status_code == 422, response.text
+
+
+def test_descripcion_se_recorta(catalog_client) -> None:
+    client, unit_id, _ = catalog_client
+
+    response = client.post(
+        "/catalog/areas",
+        json={
+            "unit_id": str(unit_id),
+            "name": "Soporte a usuarios",
+            "description": "   Atención a usuarios   ",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["description"] == "Atención a usuarios"
+
+
+@pytest.mark.parametrize("max_load", [0, 16])
+def test_carga_maxima_fuera_de_rango_responde_422(catalog_client, max_load: int) -> None:
+    client, _unit_id, technician_id = catalog_client
+
+    response = client.patch(f"/catalog/technicians/{technician_id}", json={"max_load": max_load})
+
+    assert response.status_code == 422, response.text
+
+
+def test_carga_maxima_quince_es_valida(catalog_client) -> None:
+    client, _unit_id, technician_id = catalog_client
+
+    response = client.patch(f"/catalog/technicians/{technician_id}", json={"max_load": 15})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["max_load"] == 15

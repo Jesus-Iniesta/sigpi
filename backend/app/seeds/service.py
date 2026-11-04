@@ -3,11 +3,18 @@ from collections.abc import Iterable
 from sqlalchemy import select
 
 from app.core.security import hash_password
-from app.models.catalog import AreaServicio, Categoria
+from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.models.enums import Priority
 from app.models.identity import Role, User, UserRole
 from app.models.organization import OrganizationalUnit
-from app.seeds.data import CATEGORY_SEEDS, PRIORITY_SEEDS, USER_SEEDS
+from app.seeds.data import (
+    CATEGORY_SEEDS,
+    PRIORITY_SEEDS,
+    SERVICE_AREA_SEEDS,
+    SHIFT_SEEDS,
+    SPECIALTY_SEEDS,
+    USER_SEEDS,
+)
 
 
 def _session_factory():
@@ -84,6 +91,82 @@ async def run_seed_area(area_name: str = "Soporte técnico") -> int:
         return 1
 
 
+async def run_seed_service_areas() -> int:
+    """Crea las áreas de servicio predefinidas bajo la unidad SPT.
+
+    Idempotente: omite las áreas cuyo nombre ya existe.
+    """
+    async with _session_factory()() as session:
+        unit = await session.scalar(
+            select(OrganizationalUnit).where(OrganizationalUnit.code == "SPT")
+        )
+        if unit is None:
+            raise ValueError("Organizational unit SPT does not exist; seed units first.")
+
+        created = 0
+        for name in SERVICE_AREA_SEEDS:
+            area = await session.scalar(select(AreaServicio).where(AreaServicio.name == name))
+            if area is None:
+                session.add(AreaServicio(unit_id=unit.id, name=name, is_active=True))
+                created += 1
+
+        await session.commit()
+        return created
+
+
+async def run_seed_specialties() -> int:
+    """Crea las especialidades predefinidas de cada categoría sembrada.
+
+    Idempotente: omite la pareja (categoría, especialidad) si ya existe.
+    """
+    async with _session_factory()() as session:
+        created = 0
+        for category_name, specialty_names in SPECIALTY_SEEDS.items():
+            category = await session.scalar(
+                select(Categoria).where(Categoria.name == category_name)
+            )
+            if category is None:
+                raise ValueError(
+                    f"Category {category_name!r} does not exist; seed categories first."
+                )
+            for name in specialty_names:
+                specialty = await session.scalar(
+                    select(Especialidad).where(
+                        Especialidad.category_id == category.id, Especialidad.name == name
+                    )
+                )
+                if specialty is None:
+                    session.add(Especialidad(category_id=category.id, name=name, is_active=True))
+                    created += 1
+
+        await session.commit()
+        return created
+
+
+async def run_seed_shifts() -> int:
+    """Crea los turnos predefinidos con su horario fijo.
+
+    Idempotente: omite los turnos cuyo nombre ya existe.
+    """
+    async with _session_factory()() as session:
+        created = 0
+        for option in SHIFT_SEEDS:
+            shift = await session.scalar(select(Turno).where(Turno.name == option.name))
+            if shift is None:
+                session.add(
+                    Turno(
+                        name=option.name,
+                        start_minute=option.start_minute,
+                        end_minute=option.end_minute,
+                        is_active=True,
+                    )
+                )
+                created += 1
+
+        await session.commit()
+        return created
+
+
 async def run_seed_priorities() -> tuple[Priority, ...]:
     """Return the supported priorities; priorities are persisted as an enum value."""
     return PRIORITY_SEEDS
@@ -137,12 +220,18 @@ async def run_all(area_name: str = "Soporte técnico") -> dict[str, int]:
     units = await run_seed_organizational_units()
     areas = await run_seed_area(area_name)
     categories = await run_seed_categories(area_name)
+    service_areas = await run_seed_service_areas()
+    specialties = await run_seed_specialties()
+    shifts = await run_seed_shifts()
     priorities = await run_seed_priorities()
     users = await run_seed_users()
     return {
         "organizational_units": units,
         "areas": areas,
         "categories": categories,
+        "service_areas": service_areas,
+        "specialties": specialties,
+        "shifts": shifts,
         "priorities": len(priorities),
         "users": users,
     }
