@@ -163,3 +163,50 @@ def test_cuenta_creada_puede_iniciar_sesion_con_su_correo(client) -> None:
 
     assert response.status_code == 200
     assert response.json()["user"]["institutional_id"] == KNOWN_ACCOUNT
+
+
+STUDENT_ACCOUNT = "uaem2026005"
+EXTERNAL_ACCOUNT = "ext2026001"
+MENSAJE_CORREO = "El correo debe ser institucional (@uaemex.mx o @alumno.uaemex.mx)."
+
+
+def test_alta_de_alumno_con_dominio_alumno_responde_201(client) -> None:
+    response = _alta(client, institutional_id=STUDENT_ACCOUNT)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["email"] == "ldiazm@alumno.uaemex.mx"
+    assert body["user_type"] == "student"
+
+
+def test_alumno_creado_puede_iniciar_sesion_con_su_correo(client) -> None:
+    _alta(client, institutional_id=STUDENT_ACCOUNT)
+
+    response = client.post(
+        "/auth/login", json={"email": "ldiazm@alumno.uaemex.mx", "password": VALID_PASSWORD}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user"]["institutional_id"] == STUDENT_ACCOUNT
+
+
+def test_alta_con_correo_externo_responde_422_y_no_crea_el_usuario(client) -> None:
+    response = _alta(client, institutional_id=EXTERNAL_ACCOUNT)
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "non_institutional_email"
+    assert "pexterno@gmail.com" in body["detail"]
+    assert client.get("/usuarios").json() == []
+
+
+@pytest.mark.parametrize(
+    "email", ["alguien@gmail.com", "alguien@uaemex.mx.evil.com", "alguien@otro.uaemex.mx"]
+)
+def test_login_con_correo_no_institucional_responde_422_con_el_mensaje_nuevo(
+    client, email: str
+) -> None:
+    response = client.post("/auth/login", json={"email": email, "password": VALID_PASSWORD})
+
+    assert response.status_code == 422
+    assert MENSAJE_CORREO in str(response.json()["detail"])

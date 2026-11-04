@@ -54,6 +54,14 @@ class BusinessRuleError(SigpiError):
     default_message = "La operación incumple una regla de negocio."
 
 
+class AuditLogImmutableError(SigpiError):
+    """Se intentó modificar o eliminar un registro de auditoría (S2-09, HU-10.3)."""
+
+    status_code = status.HTTP_409_CONFLICT
+    code = "audit_log_immutable"
+    default_message = "Los registros de auditoría no se pueden modificar ni eliminar."
+
+
 class AuthenticationError(SigpiError):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "unauthenticated"

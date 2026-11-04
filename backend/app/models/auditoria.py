@@ -4,9 +4,10 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Uuid, event
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
+from app.core.exceptions import AuditLogImmutableError
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -18,6 +19,8 @@ class Auditoria(Base):
 
     The append-only guarantee is enforced by the database migration through
     a trigger; this model intentionally exposes no update or delete workflow.
+    Además, el listener `before_flush` de este módulo rechaza en el ORM cualquier
+    modificación o eliminación antes de que llegue a la base de datos.
     """
 
     __tablename__ = "audit_logs"
@@ -33,6 +36,23 @@ class Auditoria(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     actor: Mapped["User | None"] = relationship()
+
+
+@event.listens_for(Session, "before_flush")
+def _impedir_mutacion_de_auditoria(session: Session, flush_context: Any, instances: Any) -> None:
+    """Rechaza el flush si la sesión modifica o elimina registros de auditoría.
+
+    Solo cuentan las instancias con cambios reales en sus columnas: cargar un registro
+    y volver a asignarle el mismo valor no se considera una modificación.
+    """
+    for instance in session.deleted:
+        if isinstance(instance, Auditoria):
+            raise AuditLogImmutableError()
+    for instance in session.dirty:
+        if isinstance(instance, Auditoria) and session.is_modified(
+            instance, include_collections=False
+        ):
+            raise AuditLogImmutableError()
 
 
 # Backwards-compatible English name used by existing imports.

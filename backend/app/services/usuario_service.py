@@ -3,8 +3,9 @@
 import uuid
 from typing import Any
 
+from app.core.exceptions import BusinessRuleError
 from app.core.permissions import RoleName
-from app.core.security import hash_password
+from app.core.security import hash_password, is_institutional_email
 from app.domain.directory import DirectoryClient
 from app.models.identity import User
 from app.repositories.usuario_repository import UsuarioRepository
@@ -16,6 +17,13 @@ class UnknownDirectoryAccountError(LookupError):
 
 class DuplicateUserError(ValueError):
     """Raised when the account is already registered in SIGPI."""
+
+
+class NonInstitutionalEmailError(BusinessRuleError):
+    """El directorio devolvió un correo que no es institucional (HU-10.1)."""
+
+    code = "non_institutional_email"
+    default_message = "El correo debe ser institucional (@uaemex.mx o @alumno.uaemex.mx)."
 
 
 class RoleNotConfiguredError(LookupError):
@@ -44,6 +52,11 @@ class UsuarioService:
         if profile is None:
             raise UnknownDirectoryAccountError(
                 f"El directorio institucional no reconoce la cuenta {institutional_id}."
+            )
+        if not is_institutional_email(profile.email):
+            raise NonInstitutionalEmailError(
+                f"El correo {profile.email} de la cuenta {institutional_id} no es institucional "
+                "(@uaemex.mx o @alumno.uaemex.mx)."
             )
 
         role_row = await self.repository.get_role_by_name(role)
