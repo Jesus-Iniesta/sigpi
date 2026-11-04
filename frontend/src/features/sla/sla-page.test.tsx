@@ -7,6 +7,7 @@ import {
   createSlaAgreement,
   getEffectiveSla,
   getSlaAgreements,
+  getSlaOptions,
   getSlaVersions,
   publishSlaVersion,
   type SlaAgreement,
@@ -17,6 +18,7 @@ import { SlaPage } from './sla-page'
 vi.mock('@/api/sla', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/sla')>()),
   getSlaAgreements: vi.fn(),
+  getSlaOptions: vi.fn(),
   createSlaAgreement: vi.fn(),
   getSlaVersions: vi.fn(),
   publishSlaVersion: vi.fn(),
@@ -27,6 +29,7 @@ vi.mock('@/api/catalog', () => ({ getCategories: vi.fn() }))
 const getAgreementsMock = vi.mocked(getSlaAgreements)
 const createAgreementMock = vi.mocked(createSlaAgreement)
 const getVersionsMock = vi.mocked(getSlaVersions)
+const optionsMock = vi.mocked(getSlaOptions)
 const publishMock = vi.mocked(publishSlaVersion)
 const effectiveMock = vi.mocked(getEffectiveSla)
 const categoriesMock = vi.mocked(getCategories)
@@ -42,7 +45,7 @@ const category: Category = {
 const agreement: SlaAgreement = {
   id: 'ag-1',
   category_id: 'cat-1',
-  name: 'Acuerdo de conectividad',
+  name: 'Conectividad y redes',
   is_default: false,
   is_active: true,
   created_at: '2026-09-01T08:00:00Z',
@@ -51,7 +54,7 @@ const agreement: SlaAgreement = {
 const defaultAgreement: SlaAgreement = {
   id: 'ag-0',
   category_id: null,
-  name: 'Acuerdo predeterminado',
+  name: 'Acuerdo general de servicio',
   is_default: true,
   is_active: true,
   created_at: '2026-09-01T08:00:00Z',
@@ -68,6 +71,30 @@ const v1: SlaVersion = {
   valid_to: null,
 }
 
+const generalP1: SlaVersion = {
+  ...v1,
+  id: 'g1',
+  agreement_id: 'ag-0',
+  first_response_minutes: 30,
+  resolution_minutes: 240,
+}
+
+const generalP3: SlaVersion = {
+  ...v1,
+  id: 'g3',
+  agreement_id: 'ag-0',
+  priority: 'P3',
+  first_response_minutes: 60,
+  resolution_minutes: 480,
+}
+
+const serviceTypes = [
+  'Soporte a equipo de cómputo y periféricos',
+  'Soporte de software y aplicaciones',
+  'Conectividad y redes',
+  'Cuentas y accesos institucionales',
+]
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -79,19 +106,116 @@ function renderPage() {
   )
 }
 
-describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
+describe('SlaPage: configuración de Tickets (S2-14, COR-05, HU-08.1)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     categoriesMock.mockResolvedValue([category])
     getAgreementsMock.mockResolvedValue([agreement])
     getVersionsMock.mockResolvedValue([v1])
+    optionsMock.mockResolvedValue({
+      default_name: 'Acuerdo general de servicio',
+      service_types: serviceTypes,
+    })
+  })
+
+  it('COR-05: no muestra «SLA» como texto visible y titula la página «Tickets»', async () => {
+    const { container } = renderPage()
+    await screen.findByText('v1')
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Tickets' }),
+    ).toBeInTheDocument()
+    expect(container.textContent).not.toMatch(/\bSLA\b/)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
+    expect(container.textContent).not.toMatch(/\bSLA\b/)
+  })
+
+  it('COR-05: el nombre del acuerdo se elige de los tipos de servicio', async () => {
+    renderPage()
+    await screen.findByText('v1')
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
+    const name = screen.getByLabelText('Nombre del acuerdo')
+
+    expect(name.tagName).toBe('SELECT')
+    await waitFor(() => expect(name).toBeEnabled())
+    expect(
+      screen.getAllByRole('option').map((option) => option.textContent),
+    ).toEqual(expect.arrayContaining(serviceTypes))
+  })
+
+  it('COR-05: el predeterminado muestra el nombre fijo y deshabilitado', async () => {
+    renderPage()
+    await screen.findByText('v1')
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
+    await user.selectOptions(screen.getByLabelText('Alcance'), 'default')
+
+    const name = screen.getByLabelText('Nombre del acuerdo')
+    expect(name).toBeDisabled()
+    expect(name).toHaveDisplayValue('Acuerdo general de servicio')
+  })
+
+  it('COR-05: exige elegir un tipo de servicio', async () => {
+    renderPage()
+    await screen.findByText('v1')
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'cat-1')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(
+      await screen.findByText('Selecciona el tipo de servicio del acuerdo.'),
+    ).toBeInTheDocument()
+    expect(createAgreementMock).not.toHaveBeenCalled()
+  })
+
+  it('COR-05: precarga los tiempos del acuerdo general en una versión nueva', async () => {
+    getAgreementsMock.mockResolvedValue([agreement, defaultAgreement])
+    getVersionsMock.mockImplementation(async (agreementId) =>
+      agreementId === 'ag-0' ? [generalP1, generalP3] : [v1],
+    )
+    renderPage()
+    await screen.findByText('v1')
+
+    const user = userEvent.setup()
+    await waitFor(() => expect(getVersionsMock).toHaveBeenCalledWith('ag-0'))
+    await user.click(screen.getByRole('button', { name: /nueva versión/i }))
+    await user.click(
+      screen.getByRole('button', { name: 'Usar tiempos del acuerdo general' }),
+    )
+
+    expect(screen.getByLabelText('Primera respuesta (P1)')).toHaveValue(30)
+    expect(screen.getByLabelText('Resolución (P1)')).toHaveValue(240)
+    expect(screen.getByLabelText('Incluir P3')).toBeChecked()
+    expect(screen.getByLabelText('Resolución (P3)')).toHaveValue(480)
+    expect(screen.getByLabelText('Incluir P2')).not.toBeChecked()
+  })
+
+  it('COR-05: no ofrece tiempos de referencia si no hay acuerdo general', async () => {
+    renderPage()
+    await screen.findByText('v1')
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /nueva versión/i }))
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Usar tiempos del acuerdo general',
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('muestra los acuerdos y el histórico de versiones del seleccionado', async () => {
     renderPage()
 
     expect(
-      await screen.findByRole('heading', { name: 'Acuerdo de conectividad' }),
+      await screen.findByRole('heading', { name: 'Conectividad y redes' }),
     ).toBeInTheDocument()
     expect(await screen.findByText('v1')).toBeInTheDocument()
     expect(screen.getByText('15 min')).toBeInTheDocument()
@@ -198,13 +322,16 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
-    await user.type(screen.getByLabelText('Nombre del acuerdo'), 'Redes')
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Nombre del acuerdo' }),
+      'Conectividad y redes',
+    )
     await user.selectOptions(screen.getByLabelText('Categoría'), 'cat-1')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(createAgreementMock).toHaveBeenCalledTimes(1))
     expect(createAgreementMock.mock.calls[0][0]).toEqual({
-      name: 'Redes',
+      name: 'Conectividad y redes',
       category_id: 'cat-1',
       is_default: false,
     })
@@ -217,18 +344,11 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
-    await user.type(
-      screen.getByLabelText('Nombre del acuerdo'),
-      'Acuerdo predeterminado',
-    )
     await user.selectOptions(screen.getByLabelText('Alcance'), 'default')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(createAgreementMock).toHaveBeenCalledTimes(1))
-    expect(createAgreementMock.mock.calls[0][0]).toEqual({
-      name: 'Acuerdo predeterminado',
-      is_default: true,
-    })
+    expect(createAgreementMock.mock.calls[0][0]).toEqual({ is_default: true })
   })
 
   it('muestra el error del servidor cuando el acuerdo ya existe', async () => {
@@ -240,7 +360,10 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /nuevo acuerdo/i }))
-    await user.type(screen.getByLabelText('Nombre del acuerdo'), 'Redes')
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Nombre del acuerdo' }),
+      'Conectividad y redes',
+    )
     await user.selectOptions(screen.getByLabelText('Categoría'), 'cat-1')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
@@ -252,7 +375,7 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
   it('AC3: avisa cuando se aplica el acuerdo predeterminado', async () => {
     effectiveMock.mockResolvedValue({
       agreement_id: 'ag-0',
-      agreement_name: 'Acuerdo predeterminado',
+      agreement_name: 'Acuerdo general de servicio',
       version: 1,
       priority: 'P3',
       first_response_minutes: 60,
@@ -289,7 +412,7 @@ describe('SlaPage: configuración de SLA (S2-14, HU-08.1)', () => {
   it('no muestra aviso cuando el acuerdo es propio de la categoría', async () => {
     effectiveMock.mockResolvedValue({
       agreement_id: 'ag-1',
-      agreement_name: 'Acuerdo de conectividad',
+      agreement_name: 'Conectividad y redes',
       version: 1,
       priority: 'P1',
       first_response_minutes: 15,

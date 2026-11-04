@@ -34,7 +34,7 @@ const navigation: NavigationItem[] = [
   },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
-  { label: 'SLA', to: '/sla', icon: Timer },
+  { label: 'Tickets', to: '/sla', icon: Timer },
 ]
 
 function getInitials(fullName: string): string {

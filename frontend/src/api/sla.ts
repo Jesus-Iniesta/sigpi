@@ -17,7 +17,15 @@ export const priorities = [
 
 export type { EffectiveSla, Priority, SlaAgreement, SlaVersion }
 
-export type SlaAgreementInput = CreateSlaAgreementInput
+// openapi.ts aún no refleja COR-05: `name` es opcional (el predeterminado lo asigna el
+// servidor) y existe `GET /sla/options`. Se tipan aquí hasta regenerarlo.
+export type SlaAgreementInput = Omit<CreateSlaAgreementInput, 'name'> & {
+  name?: string | null
+}
+export type SlaOptions = {
+  default_name: string
+  service_types: string[]
+}
 export type SlaPriorityTimes = CreateSlaVersionInput['times'][number]
 export type SlaVersionInput = CreateSlaVersionInput
 export type EffectiveSlaQuery = {
@@ -25,6 +33,9 @@ export type EffectiveSlaQuery = {
   categoryId?: string
   at?: string
 }
+
+export const getSlaOptions = (): Promise<SlaOptions> =>
+  apiFetch<SlaOptions>('/sla/options')
 
 export const getSlaAgreements = (): Promise<SlaAgreement[]> =>
   apiFetch<SlaAgreement[]>('/sla/agreements')

@@ -7,6 +7,7 @@ import {
   type Priority,
   type SlaAgreement,
   type SlaAgreementInput,
+  type SlaOptions,
   type SlaVersion,
   type SlaVersionInput,
 } from '@/api/sla'
@@ -17,6 +18,7 @@ import {
   usePublishSlaVersion,
   useSlaAgreements,
   useSlaCategories,
+  useSlaOptions,
   useSlaVersions,
 } from './use-sla'
 
@@ -51,12 +53,14 @@ function errorMessage(error: unknown) {
 // ---------------------------------------------------------------------------
 function AgreementDialog({
   categories,
+  options,
   isSaving,
   serverError,
   onClose,
   onSubmit,
 }: {
   categories: Category[]
+  options: SlaOptions | undefined
   isSaving: boolean
   serverError: string
   onClose: () => void
@@ -69,8 +73,8 @@ function AgreementDialog({
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!name.trim()) {
-      setError('Escribe el nombre del acuerdo.')
+    if (kind === 'category' && !name) {
+      setError('Selecciona el tipo de servicio del acuerdo.')
       return
     }
     if (kind === 'category' && !categoryId) {
@@ -80,8 +84,8 @@ function AgreementDialog({
     setError('')
     onSubmit(
       kind === 'default'
-        ? { name: name.trim(), is_default: true }
-        : { name: name.trim(), category_id: categoryId, is_default: false },
+        ? { is_default: true }
+        : { name, category_id: categoryId, is_default: false },
     )
   }
 
@@ -102,15 +106,6 @@ function AgreementDialog({
         </p>
         <div className="mt-6 space-y-4">
           <label className="block text-sm font-medium text-[#334155]">
-            Nombre del acuerdo
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className={inputClass}
-              disabled={isSaving}
-            />
-          </label>
-          <label className="block text-sm font-medium text-[#334155]">
             Alcance
             <select
               value={kind}
@@ -124,6 +119,40 @@ function AgreementDialog({
               <option value="default">Predeterminado</option>
             </select>
           </label>
+          <label className="block text-sm font-medium text-[#334155]">
+            Nombre del acuerdo
+            {kind === 'default' ? (
+              <select
+                value="default"
+                className={inputClass}
+                disabled
+                aria-describedby="sla-default-name-hint"
+              >
+                <option value="default">
+                  {options?.default_name ?? 'Acuerdo general de servicio'}
+                </option>
+              </select>
+            ) : (
+              <select
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className={inputClass}
+                disabled={isSaving || !options}
+              >
+                <option value="">Selecciona un tipo de servicio</option>
+                {options?.service_types.map((serviceType) => (
+                  <option key={serviceType} value={serviceType}>
+                    {serviceType}
+                  </option>
+                ))}
+              </select>
+            )}
+          </label>
+          {kind === 'default' && (
+            <p id="sla-default-name-hint" className="text-xs text-[#87959c]">
+              El acuerdo predeterminado siempre lleva este nombre.
+            </p>
+          )}
           {kind === 'category' && (
             <label className="block text-sm font-medium text-[#334155]">
               Categoría
@@ -212,6 +241,7 @@ function validateRows(rows: RowsState) {
 function VersionDialog({
   initialValidFrom,
   current,
+  referenceTimes,
   isSaving,
   serverError,
   onClose,
@@ -219,6 +249,8 @@ function VersionDialog({
 }: {
   initialValidFrom: string
   current: SlaVersion[]
+  /** Versión vigente del acuerdo general; vacío si no aplica. */
+  referenceTimes: SlaVersion[]
   isSaving: boolean
   serverError: string
   onClose: () => void
@@ -236,6 +268,12 @@ function VersionDialog({
       ...state,
       [priority]: { ...state[priority], ...change },
     }))
+
+  const applyReferenceTimes = () => {
+    setRows(initialRows(referenceTimes))
+    setRowErrors({})
+    setError('')
+  }
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -282,6 +320,17 @@ function VersionDialog({
           Los tiempos se expresan en minutos. La versión anterior se conserva en
           el histórico.
         </p>
+        {referenceTimes.length > 0 && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-4"
+            onClick={applyReferenceTimes}
+            disabled={isSaving}
+          >
+            Usar tiempos del acuerdo general
+          </Button>
+        )}
         <label className="mt-6 block text-sm font-medium text-[#334155]">
           Entrada en vigor
           <input
@@ -474,12 +523,14 @@ function EffectiveLookup({ categories }: { categories: Category[] }) {
 export function SlaPage() {
   const agreementsQuery = useSlaAgreements()
   const categoriesQuery = useSlaCategories()
+  const optionsQuery = useSlaOptions()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [now] = useState(() => Date.now())
   const [showAgreementForm, setShowAgreementForm] = useState(false)
   const [versionForm, setVersionForm] = useState<{
     validFrom: string
     current: SlaVersion[]
+    referenceTimes: SlaVersion[]
   } | null>(null)
 
   const agreements: SlaAgreement[] = agreementsQuery.data ?? []
@@ -489,6 +540,17 @@ export function SlaPage() {
 
   const versionsQuery = useSlaVersions(selected?.id)
   const versions: SlaVersion[] = versionsQuery.data ?? []
+  const generalAgreement = agreements.find(
+    (agreement) => agreement.is_default && agreement.is_active,
+  )
+  const referenceQuery = useSlaVersions(
+    selected && !selected.is_default ? generalAgreement?.id : undefined,
+  )
+  const referenceTimes: SlaVersion[] = (referenceQuery.data ?? []).filter(
+    (version) =>
+      version.valid_to === null &&
+      new Date(version.valid_from).getTime() <= now,
+  )
   const createAgreement = useCreateSlaAgreement()
   const publishVersion = usePublishSlaVersion(selected?.id)
 
@@ -508,7 +570,11 @@ export function SlaPage() {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(8, 0, 0, 0)
-    setVersionForm({ validFrom: toLocalInput(tomorrow), current: versions })
+    setVersionForm({
+      validFrom: toLocalInput(tomorrow),
+      current: versions,
+      referenceTimes: selected?.is_default ? [] : referenceTimes,
+    })
   }
 
   const versionStatus = (version: SlaVersion) => {
@@ -526,11 +592,11 @@ export function SlaPage() {
             Configuración
           </p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Acuerdos de nivel de servicio
+            Tickets
           </h1>
           <p className="mt-2 text-[#718096]">
-            Define y versiona los tiempos de primera respuesta y de resolución
-            por categoría y prioridad.
+            Acuerdos de servicio: define y versiona los tiempos de primera
+            respuesta y de resolución por categoría y prioridad.
           </p>
         </div>
         <Button onClick={openAgreementForm}>
@@ -668,6 +734,7 @@ export function SlaPage() {
       {showAgreementForm && (
         <AgreementDialog
           categories={categories}
+          options={optionsQuery.data}
           isSaving={createAgreement.isPending}
           serverError={errorMessage(createAgreement.error)}
           onClose={() =>
@@ -688,6 +755,7 @@ export function SlaPage() {
         <VersionDialog
           initialValidFrom={versionForm.validFrom}
           current={versionForm.current}
+          referenceTimes={versionForm.referenceTimes}
           isSaving={publishVersion.isPending}
           serverError={errorMessage(publishVersion.error)}
           onClose={() => !publishVersion.isPending && setVersionForm(null)}

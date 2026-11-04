@@ -11,7 +11,8 @@ class SlaAgreementCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=140)
+    # Si `is_default=True`, el servidor ignora este valor y asigna el nombre fijo.
+    name: str | None = Field(default=None, max_length=140)
     category_id: uuid.UUID | None = None
     is_default: bool = False
 
@@ -22,6 +23,13 @@ class SlaAgreementCreate(BaseModel):
         if not self.is_default and self.category_id is None:
             raise ValueError("Un acuerdo que no es predeterminado requiere una categoría.")
         return self
+
+
+class SlaOptionsRead(BaseModel):
+    """Nombres disponibles para los acuerdos de servicio."""
+
+    default_name: str
+    service_types: list[str]
 
 
 class SlaAgreementRead(BaseModel):
