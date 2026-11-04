@@ -36,6 +36,20 @@ _DEMO_PROFILES: dict[str, DirectoryProfile] = {
         email="jramirez@uaemex.mx",
         user_type=UserType.TECHNICAL,
     ),
+    # Alumno con el dominio @alumno.uaemex.mx (COR-01).
+    "uaem2026005": DirectoryProfile(
+        institutional_id="uaem2026005",
+        full_name="Laura Díaz Morales",
+        email="ldiazm@alumno.uaemex.mx",
+        user_type=UserType.STUDENT,
+    ),
+    # Perfil con correo externo: el alta debe rechazarlo (COR-01).
+    "ext2026001": DirectoryProfile(
+        institutional_id="ext2026001",
+        full_name="Pedro Externo Ruiz",
+        email="pexterno@gmail.com",
+        user_type=UserType.ACADEMIC,
+    ),
 }
 
 

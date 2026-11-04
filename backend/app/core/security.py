@@ -15,9 +15,12 @@ from pwdlib.exceptions import UnknownHashError
 
 from app.core.config import settings
 
-INSTITUTIONAL_EMAIL_DOMAIN = "uaemex.mx"
+# Dominios aceptados, comparados de forma exacta: cualquier otro subdominio de
+# uaemex.mx (p. ej. `x.uaemex.mx`) o sufijo falso (`uaemex.mx.evil.com`) se rechaza.
+INSTITUTIONAL_EMAIL_DOMAINS = ("uaemex.mx", "alumno.uaemex.mx")
 _INSTITUTIONAL_EMAIL = re.compile(
-    rf"^[A-Za-z0-9._%+-]+@{re.escape(INSTITUTIONAL_EMAIL_DOMAIN)}$", re.IGNORECASE
+    rf"[A-Za-z0-9._%+-]+@(?:{'|'.join(re.escape(d) for d in INSTITUTIONAL_EMAIL_DOMAINS)})",
+    re.IGNORECASE,
 )
 
 _password_hasher = PasswordHash.recommended()
@@ -34,7 +37,7 @@ class TokenPayload:
 
 
 def is_institutional_email(email: str) -> bool:
-    """True si el correo tiene exactamente el formato `usuario@uaemex.mx`."""
+    """True si el correo es `usuario@uaemex.mx` o `usuario@alumno.uaemex.mx` (sin distinguir mayúsculas)."""
     return _INSTITUTIONAL_EMAIL.fullmatch(email) is not None
 
 
