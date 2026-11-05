@@ -1,0 +1,2 @@
+# Dependencias solo para pruebas; se instalan después de requirements.txt.
+pypdf

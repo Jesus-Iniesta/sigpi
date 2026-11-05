@@ -1,11 +1,14 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import require_permission
+from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.enums import Priority
+from app.models.identity import User
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import (
     EffectiveSlaRead,
@@ -15,6 +18,7 @@ from app.schemas.sla import (
     SlaVersionCreate,
     SlaVersionRead,
 )
+from app.services.contrato_sla_service import ContratoSlaService
 from app.services.sla_service import SlaService
 
 # Los errores esperados del servicio son subclases de `SigpiError`; el manejador global
@@ -24,6 +28,12 @@ router = APIRouter(prefix="/sla", tags=["sla"])
 
 def get_sla_service(session: AsyncSession = Depends(get_session)) -> SlaService:
     return SlaService(SlaRepository(session))
+
+
+def get_contrato_sla_service(
+    session: AsyncSession = Depends(get_session),
+) -> ContratoSlaService:
+    return ContratoSlaService(SlaRepository(session))
 
 
 @router.get("/options", response_model=SlaOptionsRead)
@@ -64,6 +74,27 @@ async def publish_version(
     service: SlaService = Depends(get_sla_service),
 ):
     return await service.publish_version(agreement_id, payload)
+
+
+@router.get(
+    "/agreements/{agreement_id}/contrato.pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+async def download_contract(
+    agreement_id: uuid.UUID,
+    user: User = Depends(require_permission(Permission.SLA_CONTRACT_DOWNLOAD)),
+    service: ContratoSlaService = Depends(get_contrato_sla_service),
+):
+    """Contrato simulado en PDF de la versión vigente del acuerdo (COR-06A)."""
+    contrato = await service.generar(
+        agreement_id, usuario_nombre=user.full_name, usuario_correo=user.email
+    )
+    return Response(
+        content=contrato.contenido,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{contrato.nombre_archivo}"'},
+    )
 
 
 @router.get("/effective", response_model=EffectiveSlaRead)

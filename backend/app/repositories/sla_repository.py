@@ -108,3 +108,7 @@ class SlaRepository:
         for version in versions:
             await self._session.refresh(version)
         return versions
+
+    async def get_category_name(self, category_id: uuid.UUID) -> str | None:
+        category = await self._session.get(Categoria, category_id)
+        return category.name if category is not None else None

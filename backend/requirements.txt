@@ -11,6 +11,7 @@ pwdlib[argon2]
 python-multipart
 email-validator
 typer
+reportlab
 pytest
 pytest-asyncio
 ruff
