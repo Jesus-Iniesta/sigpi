@@ -21,8 +21,10 @@ from app.domain.sla_options import AGREEMENT_DEFAULT_NAME, SERVICE_TYPE_NAMES
 from app.models.catalog import AreaServicio, Categoria
 from app.models.enums import Priority
 from app.models.organization import OrganizationalUnit
+from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import SlaAgreementCreate, SlaPriorityTimes, SlaVersionCreate
+from app.services.auditoria_service import AuditoriaService
 from app.services.sla_service import (
     SlaConflictError,
     SlaNameNotAllowedError,
@@ -54,7 +56,7 @@ async def session():
 
 @pytest_asyncio.fixture
 async def service(session: AsyncSession) -> SlaService:
-    return SlaService(SlaRepository(session))
+    return SlaService(SlaRepository(session), AuditoriaService(AuditoriaRepository(session)))
 
 
 @pytest_asyncio.fixture

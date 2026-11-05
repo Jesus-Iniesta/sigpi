@@ -28,6 +28,9 @@ class UsuarioRepository:
             select(User)
             .where(User.id == user_id)
             .options(selectinload(User.roles).selectinload(UserRole.role))
+            # Recarga los roles aunque el usuario ya esté en la sesión: tras un
+            # `flush` sin `commit` la colección cargada antes quedaría obsoleta.
+            .execution_options(populate_existing=True)
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -39,17 +42,17 @@ class UsuarioRepository:
 
     async def add(self, user: User) -> User:
         self.session.add(user)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(user)
         return user
 
     async def assign_role(self, user_id: uuid.UUID, role_id: uuid.UUID) -> None:
         self.session.add(UserRole(user_id=user_id, role_id=role_id))
-        await self.session.commit()
+        await self.session.flush()
 
     async def deactivate(self, user: User) -> User:
         user.is_active = False
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(user)
         return user
 
@@ -65,11 +68,15 @@ class UsuarioRepository:
     async def update_fields(self, user: User, fields: dict) -> User:
         for key, value in fields.items():
             setattr(user, key, value)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(user)
         return user
 
     async def replace_roles(self, user_id: uuid.UUID, role_id: uuid.UUID) -> None:
         await self.session.execute(delete(UserRole).where(UserRole.user_id == user_id))
         self.session.add(UserRole(user_id=user_id, role_id=role_id))
+        await self.session.flush()
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
         await self.session.commit()

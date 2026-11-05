@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
+from app.domain.auditoria import AuditContext, snapshot
 from app.domain.sla_options import (
     AGREEMENT_DEFAULT_NAME,
     SERVICE_TYPE_NAMES,
@@ -24,6 +25,19 @@ from app.models.enums import Priority
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import SlaAgreementCreate, SlaVersionCreate
+from app.services.auditoria_service import AuditoriaService
+
+CAMPOS_ACUERDO = ("id", "name", "category_id", "is_default", "is_active")
+CAMPOS_VERSION = (
+    "id",
+    "agreement_id",
+    "version",
+    "priority",
+    "first_response_minutes",
+    "resolution_minutes",
+    "valid_from",
+    "valid_to",
+)
 
 
 class SlaNotFoundError(NotFoundError):
@@ -69,8 +83,9 @@ def as_utc(value: datetime) -> datetime:
 
 
 class SlaService:
-    def __init__(self, repository: SlaRepository) -> None:
+    def __init__(self, repository: SlaRepository, auditoria: AuditoriaService) -> None:
         self._repository = repository
+        self._auditoria = auditoria
 
     # --- acuerdos ----------------------------------------------------------
     @staticmethod
@@ -81,7 +96,9 @@ class SlaService:
     async def list_agreements(self) -> list[ServiceLevelAgreement]:
         return await self._repository.list_agreements()
 
-    async def create_agreement(self, payload: SlaAgreementCreate) -> ServiceLevelAgreement:
+    async def create_agreement(
+        self, payload: SlaAgreementCreate, contexto: AuditContext | None = None
+    ) -> ServiceLevelAgreement:
         if payload.is_default:
             # El predeterminado siempre lleva el nombre fijo; se ignora el enviado.
             name = AGREEMENT_DEFAULT_NAME
@@ -112,11 +129,23 @@ class SlaService:
             is_default=payload.is_default,
             is_active=True,
         )
-        return await self._repository.add_agreement(agreement)
+        created = await self._repository.add_agreement(agreement)
+        await self._auditoria.registrar(
+            contexto,
+            action="sla.acuerdo.creado",
+            entity_type="sla_agreement",
+            entity_id=created.id,
+            new_values=snapshot(created, CAMPOS_ACUERDO),
+        )
+        await self._repository.commit()
+        return created
 
     # --- versiones (AC1, AC2) ----------------------------------------------
     async def publish_version(
-        self, agreement_id: uuid.UUID, payload: SlaVersionCreate
+        self,
+        agreement_id: uuid.UUID,
+        payload: SlaVersionCreate,
+        contexto: AuditContext | None = None,
     ) -> list[ServiceLevelVersion]:
         agreement = await self._repository.get_agreement(agreement_id)
         if agreement is None:
@@ -155,7 +184,17 @@ class SlaService:
             )
             for times in payload.times
         ]
-        return await self._repository.save_versions(new_versions)
+        saved = await self._repository.save_versions(new_versions)
+        for version in saved:
+            await self._auditoria.registrar(
+                contexto,
+                action="sla.version.creada",
+                entity_type="sla_version",
+                entity_id=version.id,
+                new_values=snapshot(version, CAMPOS_VERSION),
+            )
+        await self._repository.commit()
+        return saved
 
     async def list_versions(
         self, agreement_id: uuid.UUID, *, priority: Priority | None = None

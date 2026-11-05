@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app.api.dependencies import get_current_user
 from app.db.base import Base
 from app.db.session import get_session
 from app.domain.sla_options import AGREEMENT_DEFAULT_NAME, SERVICE_TYPE_NAMES
@@ -45,6 +47,18 @@ def test_sla_versions_validate_priority_and_time_values() -> None:
 
 
 # --- COR-05: API de acuerdos con nombres predefinidos ------------------------
+ADMIN_ID = uuid.uuid4()
+
+
+def _administrador() -> SimpleNamespace:
+    """Usuario en sesión con rol de administrador (lo que consulta `require_permission`)."""
+    return SimpleNamespace(
+        id=ADMIN_ID,
+        is_active=True,
+        roles=[SimpleNamespace(role=SimpleNamespace(name="administrator"))],
+    )
+
+
 @pytest.fixture
 def sla_client():
     engine = create_async_engine(
@@ -75,6 +89,7 @@ def sla_client():
             yield session
 
     fastapi_app.dependency_overrides[get_session] = override_session
+    fastapi_app.dependency_overrides[get_current_user] = _administrador
     try:
         yield TestClient(fastapi_app), str(category_id)
     finally:

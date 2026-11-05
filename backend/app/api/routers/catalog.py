@@ -4,9 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import AuditContext, get_audit_context, require_permission
+from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.identity import User
 from app.models.organization import OrganizationalUnit
+from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.catalog_repository import (
     CategoryRepository,
     ServiceAreaRepository,
@@ -28,6 +31,7 @@ from app.schemas.catalog import (
     TechnicianProfileUpdate,
     TechnicianRead,
 )
+from app.services.auditoria_service import AuditoriaService
 from app.services.catalog_service import CatalogService, CatalogValidationError
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
@@ -40,7 +44,12 @@ def get_catalog_service(session: AsyncSession = Depends(get_session)) -> Catalog
         specialties=SpecialtyRepository(session),
         shifts=ShiftRepository(session),
         technicians=TechnicianRepository(session),
+        auditoria=AuditoriaService(AuditoriaRepository(session)),
     )
+
+
+# Las altas y la edición de técnicos exigen sesión con permiso de gestión del catálogo.
+_GESTIONA_CATALOGO = [Depends(require_permission(Permission.CATALOG_MANAGE))]
 
 
 def _to_technician_read(user: User) -> TechnicianRead:
@@ -81,11 +90,18 @@ async def list_organizational_units(
     return list(result)
 
 
-@router.post("/areas", response_model=ServiceAreaRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/areas",
+    response_model=ServiceAreaRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_GESTIONA_CATALOGO,
+)
 async def create_area(
-    payload: ServiceAreaCreate, service: CatalogService = Depends(get_catalog_service)
+    payload: ServiceAreaCreate,
+    service: CatalogService = Depends(get_catalog_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
-    return await service.create_area(payload)
+    return await service.create_area(payload, contexto)
 
 
 @router.get("/categories", response_model=list[CategoryRead])
@@ -95,12 +111,19 @@ async def list_categories(
     return await service.list_categories(area_id=area_id)
 
 
-@router.post("/categories", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/categories",
+    response_model=CategoryRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_GESTIONA_CATALOGO,
+)
 async def create_category(
-    payload: CategoryCreate, service: CatalogService = Depends(get_catalog_service)
+    payload: CategoryCreate,
+    service: CatalogService = Depends(get_catalog_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
     try:
-        return await service.create_category(payload)
+        return await service.create_category(payload, contexto)
     except CatalogValidationError as exc:
         raise _unprocessable(exc) from exc
 
@@ -112,12 +135,19 @@ async def list_specialties(
     return await service.list_specialties(category_id=category_id)
 
 
-@router.post("/specialties", response_model=SpecialtyRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/specialties",
+    response_model=SpecialtyRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_GESTIONA_CATALOGO,
+)
 async def create_specialty(
-    payload: SpecialtyCreate, service: CatalogService = Depends(get_catalog_service)
+    payload: SpecialtyCreate,
+    service: CatalogService = Depends(get_catalog_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
     try:
-        return await service.create_specialty(payload)
+        return await service.create_specialty(payload, contexto)
     except CatalogValidationError as exc:
         raise _unprocessable(exc) from exc
 
@@ -127,12 +157,19 @@ async def list_shifts(service: CatalogService = Depends(get_catalog_service)):
     return await service.list_shifts()
 
 
-@router.post("/shifts", response_model=ShiftRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/shifts",
+    response_model=ShiftRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_GESTIONA_CATALOGO,
+)
 async def create_shift(
-    payload: ShiftCreate, service: CatalogService = Depends(get_catalog_service)
+    payload: ShiftCreate,
+    service: CatalogService = Depends(get_catalog_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
     try:
-        return await service.create_shift(payload)
+        return await service.create_shift(payload, contexto)
     except CatalogValidationError as exc:
         raise _unprocessable(exc) from exc
 
@@ -146,14 +183,17 @@ async def list_technicians(
     return [_to_technician_read(t) for t in technicians]
 
 
-@router.patch("/technicians/{user_id}", response_model=TechnicianRead)
+@router.patch(
+    "/technicians/{user_id}", response_model=TechnicianRead, dependencies=_GESTIONA_CATALOGO
+)
 async def update_technician(
     user_id: uuid.UUID,
     payload: TechnicianProfileUpdate,
     service: CatalogService = Depends(get_catalog_service),
+    contexto: AuditContext = Depends(get_audit_context),
 ):
     try:
-        technician = await service.update_technician_profile(user_id, payload)
+        technician = await service.update_technician_profile(user_id, payload, contexto)
     except CatalogValidationError as exc:
         raise _unprocessable(exc) from exc
     return _to_technician_read(technician)

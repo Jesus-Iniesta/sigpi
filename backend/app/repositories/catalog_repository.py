@@ -13,6 +13,10 @@ class ServiceAreaRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
+
     async def list_all(self) -> list[AreaServicio]:
         result = await self._session.scalars(select(AreaServicio).order_by(AreaServicio.name))
         return list(result)
@@ -22,7 +26,7 @@ class ServiceAreaRepository:
 
     async def create(self, area: AreaServicio) -> AreaServicio:
         self._session.add(area)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(area)
         return area
 
@@ -30,6 +34,10 @@ class ServiceAreaRepository:
 class CategoryRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
 
     async def list_all(self, *, area_id: uuid.UUID | None = None) -> list[Categoria]:
         query = select(Categoria).order_by(Categoria.name)
@@ -42,7 +50,7 @@ class CategoryRepository:
 
     async def create(self, category: Categoria) -> Categoria:
         self._session.add(category)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(category)
         return category
 
@@ -50,6 +58,10 @@ class CategoryRepository:
 class SpecialtyRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
 
     async def list_all(self, *, category_id: uuid.UUID | None = None) -> list[Especialidad]:
         query = select(Especialidad).order_by(Especialidad.name)
@@ -67,7 +79,7 @@ class SpecialtyRepository:
 
     async def create(self, specialty: Especialidad) -> Especialidad:
         self._session.add(specialty)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(specialty)
         return specialty
 
@@ -75,6 +87,10 @@ class SpecialtyRepository:
 class ShiftRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
 
     async def list_all(self) -> list[Turno]:
         result = await self._session.scalars(select(Turno).order_by(Turno.start_minute))
@@ -85,7 +101,7 @@ class ShiftRepository:
 
     async def create(self, shift: Turno) -> Turno:
         self._session.add(shift)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(shift)
         return shift
 
@@ -93,6 +109,10 @@ class ShiftRepository:
 class TechnicianRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
 
     async def list_all(self, *, specialty_id: uuid.UUID | None = None) -> list[User]:
         query = (
@@ -115,6 +135,6 @@ class TechnicianRepository:
 
     async def save(self, technician: User) -> User:
         self._session.add(technician)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(technician, attribute_names=["specialties"])
         return technician

@@ -47,7 +47,7 @@ class SlaRepository:
 
     async def add_agreement(self, agreement: ServiceLevelAgreement) -> ServiceLevelAgreement:
         self._session.add(agreement)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(agreement)
         return agreement
 
@@ -102,9 +102,9 @@ class SlaRepository:
         return result.first()
 
     async def save_versions(self, versions: list[ServiceLevelVersion]) -> list[ServiceLevelVersion]:
-        """Guarda las versiones nuevas y los cierres pendientes en una sola transacción."""
+        """Agrega las versiones nuevas y los cierres pendientes a la transacción en curso."""
         self._session.add_all(versions)
-        await self._session.commit()
+        await self._session.flush()
         for version in versions:
             await self._session.refresh(version)
         return versions
@@ -112,3 +112,7 @@ class SlaRepository:
     async def get_category_name(self, category_id: uuid.UUID) -> str | None:
         category = await self._session.get(Categoria, category_id)
         return category.name if category is not None else None
+
+    async def commit(self) -> None:
+        """Confirma la transacción; la llama el servicio que orquesta el caso de uso."""
+        await self._session.commit()
