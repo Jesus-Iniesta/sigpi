@@ -7,8 +7,9 @@ Cubren `GET /sla/agreements/{agreement_id}/contrato.pdf`:
 - `requester` y `administrator` lo descargan; `support_agent` recibe 403 y sin sesión, 401.
 - Acuerdo inexistente: 404. Acuerdo sin versión vigente: 422 `sla_without_current_version`.
 
-`pypdf` es solo dependencia de pruebas: si no está instalado, las pruebas que leen el
-texto del PDF se omiten.
+`pypdf` es solo dependencia de pruebas (`requirements-dev.txt`). Se importa a nivel de
+módulo a propósito: si falta, el módulo no se puede recolectar y la ejecución falla
+en lugar de omitir las pruebas.
 """
 
 import asyncio
@@ -17,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from types import SimpleNamespace
 
+import pypdf
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -154,7 +156,6 @@ def _url(agreement_id: uuid.UUID | str) -> str:
 
 
 def _texto_pdf(contenido: bytes) -> str:
-    pypdf = pytest.importorskip("pypdf")
     lector = pypdf.PdfReader(BytesIO(contenido))
     texto = " ".join(pagina.extract_text() for pagina in lector.pages)
     # Se normalizan los espacios: el ajuste de línea del PDF no debe afectar las pruebas.
