@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Clock, Plus, Search, ShieldCheck } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { Clock, FileDown, Plus, Search, ShieldCheck } from 'lucide-react'
 import type { Category } from '@/api/catalog'
 import {
+  descargarContrato,
   priorities,
   type EffectiveSla,
   type Priority,
@@ -11,6 +13,8 @@ import {
   type SlaVersion,
   type SlaVersionInput,
 } from '@/api/sla'
+import type { UserRole } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-context'
 import { Button } from '@/shared/ui/button'
 import { getErrorMessage } from '@/shared/lib/error-messages'
 import {
@@ -22,6 +26,9 @@ import {
   useSlaOptions,
   useSlaVersions,
 } from './use-sla'
+
+/** Roles que pueden descargar el contrato del acuerdo (COR-06B). */
+const contractRoles: readonly UserRole[] = ['requester', 'administrator']
 
 const inputClass =
   'mt-1.5 h-10 w-full rounded-lg border border-[#dce6e4] bg-[#fafcfc] px-3 outline-none focus:border-[#0f766e]'
@@ -522,6 +529,9 @@ function EffectiveLookup({ categories }: { categories: Category[] }) {
 // Pantalla
 // ---------------------------------------------------------------------------
 export function SlaPage() {
+  const { user } = useAuth()
+  const canDownloadContract =
+    user?.roles.some((role) => contractRoles.includes(role)) ?? false
   const agreementsQuery = useSlaAgreements()
   const categoriesQuery = useSlaCategories()
   const optionsQuery = useSlaOptions()
@@ -554,6 +564,7 @@ export function SlaPage() {
   )
   const createAgreement = useCreateSlaAgreement()
   const publishVersion = usePublishSlaVersion(selected?.id)
+  const downloadContract = useMutation({ mutationFn: descargarContrato })
 
   const categoryName = (agreement: SlaAgreement) =>
     agreement.is_default
@@ -636,7 +647,10 @@ export function SlaPage() {
               <button
                 key={agreement.id}
                 type="button"
-                onClick={() => setSelectedId(agreement.id)}
+                onClick={() => {
+                  setSelectedId(agreement.id)
+                  downloadContract.reset()
+                }}
                 aria-pressed={agreement.id === selected.id}
                 className={
                   agreement.id === selected.id
@@ -660,11 +674,33 @@ export function SlaPage() {
                   {categoryName(selected)} · Histórico de versiones
                 </p>
               </div>
-              <Button variant="secondary" onClick={openVersionForm}>
-                <Clock size={16} />
-                Nueva versión
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                {canDownloadContract && (
+                  <Button
+                    variant="secondary"
+                    disabled={downloadContract.isPending}
+                    onClick={() => downloadContract.mutate(selected.id)}
+                  >
+                    <FileDown size={16} />
+                    {downloadContract.isPending
+                      ? 'Generando…'
+                      : 'Descargar contrato (PDF)'}
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={openVersionForm}>
+                  <Clock size={16} />
+                  Nueva versión
+                </Button>
+              </div>
             </div>
+            {downloadContract.isError && (
+              <p
+                role="alert"
+                className="border-b border-[#edf2f1] px-5 py-3 text-sm text-[#b54735]"
+              >
+                {errorMessage(downloadContract.error)}
+              </p>
+            )}
             {versionsQuery.isLoading && (
               <p className="p-8 text-center text-sm text-[#718096]">
                 Cargando versiones...
