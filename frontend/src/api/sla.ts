@@ -1,4 +1,4 @@
-import { apiFetch } from '@/api/client'
+import { apiFetch, apiRequest } from '@/api/client'
 import type {
   CreateSlaAgreementInput,
   CreateSlaVersionInput,
@@ -78,4 +78,49 @@ export function getEffectiveSla({
   if (categoryId) params.set('category_id', categoryId)
   if (at) params.set('at', at)
   return apiFetch<EffectiveSla>(`/sla/effective?${params.toString()}`)
+}
+
+export const CONTRATO_NOMBRE_POR_DEFECTO = 'contrato.pdf'
+
+export const contratoUrl = (agreementId: string) =>
+  `/sla/agreements/${encodeURIComponent(agreementId)}/contrato.pdf`
+
+/**
+ * Lee el nombre del archivo de `Content-Disposition` (`filename*` o `filename`).
+ * Si el encabezado no llega o no es legible, devuelve `contrato.pdf`.
+ */
+export function nombreDeContrato(disposition: string | null): string {
+  if (!disposition) return CONTRATO_NOMBRE_POR_DEFECTO
+  const extendido = /filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i.exec(disposition)
+  if (extendido) {
+    try {
+      const nombre = decodeURIComponent(extendido[1].trim().replace(/"/g, ''))
+      if (nombre) return nombre
+    } catch {
+      // Codificación inválida: se intenta con `filename`.
+    }
+  }
+  const simple = /filename\s*=\s*("([^"]*)"|[^;]+)/i.exec(disposition)
+  const nombre = (simple?.[2] ?? simple?.[1] ?? '').trim()
+  return nombre || CONTRATO_NOMBRE_POR_DEFECTO
+}
+
+/**
+ * Descarga el contrato en PDF de la versión vigente del acuerdo (COR-06B).
+ * Si el servidor responde con error, lanza `ApiError` igual que `apiFetch` (COR-07).
+ */
+export async function descargarContrato(agreementId: string): Promise<void> {
+  const response = await apiRequest(contratoUrl(agreementId))
+  const blob = await response.blob()
+  const nombre = nombreDeContrato(response.headers.get('Content-Disposition'))
+
+  const url = URL.createObjectURL(blob)
+  const enlace = document.createElement('a')
+  enlace.href = url
+  enlace.download = nombre
+  document.body.appendChild(enlace)
+  enlace.click()
+  enlace.remove()
+  // Se revoca después del clic para no cancelar la descarga en algunos navegadores.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }

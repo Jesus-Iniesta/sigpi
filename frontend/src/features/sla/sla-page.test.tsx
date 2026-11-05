@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCategories, type Category } from '@/api/catalog'
+import type { User, UserRole } from '@/api/types'
+import { AuthContext } from '@/features/auth/auth-context'
 import {
   createSlaAgreement,
   getEffectiveSla,
@@ -95,14 +97,35 @@ const serviceTypes = [
   'Cuentas y accesos institucionales',
 ]
 
-function renderPage() {
+function makeUser(roles: UserRole[]): User {
+  return {
+    id: 'user-1',
+    email: 'persona@sigpi.test',
+    full_name: 'Persona de prueba',
+    is_active: true,
+    roles,
+  } as User
+}
+
+function renderPage(roles: UserRole[] = ['administrator']) {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
-    <QueryClientProvider client={queryClient}>
-      <SlaPage />
-    </QueryClientProvider>,
+    <AuthContext.Provider
+      value={{
+        user: makeUser(roles),
+        isLoading: false,
+        isAuthenticated: true,
+        sessionExpired: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <SlaPage />
+      </QueryClientProvider>
+    </AuthContext.Provider>,
   )
 }
 
@@ -431,5 +454,130 @@ describe('SlaPage: configuración de Tickets (S2-14, COR-05, HU-08.1)', () => {
       await screen.findByText('v1', { selector: 'dd' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  describe('COR-06B: descarga del contrato en PDF', () => {
+    const contractButton = { name: 'Descargar contrato (PDF)' }
+    let fetchMock: ReturnType<typeof vi.fn>
+    let createUrlMock: ReturnType<typeof vi.fn>
+    let clickSpy: ReturnType<typeof vi.spyOn>
+    let downloadedName: string | null
+
+    beforeEach(() => {
+      fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+      createUrlMock = vi.fn(() => 'blob:contrato')
+      URL.createObjectURL = createUrlMock as typeof URL.createObjectURL
+      URL.revokeObjectURL = vi.fn()
+      downloadedName = null
+      clickSpy = vi
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          downloadedName = this.download
+        })
+    })
+
+    afterEach(() => {
+      clickSpy.mockRestore()
+      vi.unstubAllGlobals()
+    })
+
+    function pdfResponse(headers: Record<string, string> = {}) {
+      return new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf', ...headers },
+      })
+    }
+
+    it.each<UserRole>(['administrator', 'requester'])(
+      'muestra el botón para %s',
+      async (role) => {
+        renderPage([role])
+        await screen.findByText('v1')
+
+        expect(screen.getByRole('button', contractButton)).toBeInTheDocument()
+      },
+    )
+
+    it('no muestra el botón para support_agent', async () => {
+      renderPage(['support_agent'])
+      await screen.findByText('v1')
+
+      expect(
+        screen.queryByRole('button', contractButton),
+      ).not.toBeInTheDocument()
+    })
+
+    it('descarga el PDF del acuerdo seleccionado con la URL correcta', async () => {
+      let resolveFetch: (response: Response) => void = () => {}
+      fetchMock.mockReturnValue(
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve
+        }),
+      )
+      renderPage(['administrator'])
+      await screen.findByText('v1')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', contractButton))
+
+      const generating = await screen.findByRole('button', {
+        name: 'Generando…',
+      })
+      expect(generating).toBeDisabled()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+      expect(url).toBe('http://localhost:8000/sla/agreements/ag-1/contrato.pdf')
+      expect(init.credentials).toBe('include')
+
+      resolveFetch(
+        pdfResponse({
+          'Content-Disposition':
+            'attachment; filename="contrato-conectividad-y-redes-v1.pdf"',
+        }),
+      )
+
+      await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1))
+      expect(createUrlMock).toHaveBeenCalledWith(expect.any(Blob))
+      expect(downloadedName).toBe('contrato-conectividad-y-redes-v1.pdf')
+      expect(await screen.findByRole('button', contractButton)).toBeEnabled()
+    })
+
+    it('usa contrato.pdf si no puede leer Content-Disposition', async () => {
+      fetchMock.mockResolvedValue(pdfResponse())
+      renderPage(['administrator'])
+      await screen.findByText('v1')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', contractButton))
+
+      await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1))
+      expect(downloadedName).toBe('contrato.pdf')
+    })
+
+    it('muestra el mensaje del servidor si no hay versión vigente', async () => {
+      fetchMock.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            detail:
+              'El acuerdo no tiene una versión vigente; publica una antes de generar el contrato.',
+            code: 'sla_without_current_version',
+            request_id: 'req-123',
+          }),
+          { status: 422, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      renderPage(['administrator'])
+      await screen.findByText('v1')
+
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', contractButton))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'El acuerdo no tiene una versión vigente; publica una antes de generar el contrato.',
+      )
+      expect(createUrlMock).not.toHaveBeenCalled()
+      expect(clickSpy).not.toHaveBeenCalled()
+    })
   })
 })

@@ -134,10 +134,14 @@ async function buildApiError(response: Response): Promise<ApiError> {
   )
 }
 
-export async function apiFetch<T>(
+/**
+ * Hace la petición con la sesión (cookies) y, si el estatus no es 2xx, lanza `ApiError`.
+ * Devuelve la `Response` sin leer, para quien necesite el cuerpo como `Blob` (COR-06B).
+ */
+export async function apiRequest(
   path: string,
   init?: RequestInit,
-): Promise<T> {
+): Promise<Response> {
   const headers = new Headers(init?.headers)
 
   if (init?.body && !headers.has('Content-Type')) {
@@ -157,7 +161,14 @@ export async function apiFetch<T>(
     }
     throw error
   }
+  return response
+}
 
+export async function apiFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await apiRequest(path, init)
   if (response.status === 204) {
     return undefined as T
   }
