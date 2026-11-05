@@ -483,7 +483,8 @@ describe('SlaPage: configuración de Tickets (S2-14, COR-05, HU-08.1)', () => {
     })
 
     function pdfResponse(headers: Record<string, string> = {}) {
-      return new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }), {
+      // Cuerpo como texto: el Blob de jsdom no tiene `stream()` y el Response de Node 22 lo exige.
+      return new Response('%PDF-1.4', {
         status: 200,
         headers: { 'Content-Type': 'application/pdf', ...headers },
       })
@@ -538,7 +539,9 @@ describe('SlaPage: configuración de Tickets (S2-14, COR-05, HU-08.1)', () => {
       )
 
       await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1))
-      expect(createUrlMock).toHaveBeenCalledWith(expect.any(Blob))
+      expect(createUrlMock).toHaveBeenCalledWith(
+        expect.objectContaining({ size: 8, type: 'application/pdf' }),
+      )
       expect(downloadedName).toBe('contrato-conectividad-y-redes-v1.pdf')
       expect(await screen.findByRole('button', contractButton)).toBeEnabled()
     })
