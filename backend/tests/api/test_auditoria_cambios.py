@@ -15,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
@@ -25,11 +26,11 @@ from app.db.session import get_session
 from app.integrations.directory_client import StubDirectoryClient
 from app.main import app as fastapi_app
 from app.models.auditoria import Auditoria
-from app.models.catalog import AreaServicio
+from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.models.enums import UserType
-from app.models.identity import Role, User
+from app.models.identity import Role, User, UserRole
 from app.models.organization import OrganizationalUnit
-from app.models.sla import ServiceLevelAgreement
+from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.catalog_repository import (
     CategoryRepository,
@@ -496,3 +497,102 @@ def test_si_falla_la_auditoria_no_se_guarda_el_acuerdo(entorno) -> None:
     _con_auditoria_que_falla(entorno.maker, caso)
 
     assert _contar(entorno.maker, ServiceLevelAgreement) == 0
+
+
+# --- cada escritura se confirma (los repositorios ya no hacen commit) -----------
+def _en_sesion_nueva(maker, consulta):
+    async def ejecutar():
+        async with maker() as session:
+            return await consulta(session)
+
+    return asyncio.run(ejecutar())
+
+
+def test_cada_escritura_de_administracion_queda_confirmada_en_una_sesion_nueva(
+    entorno,
+) -> None:
+    """Lee desde una sesión independiente: solo ve lo que el servicio confirmó."""
+
+    async def sembrar_rol(session):
+        session.add(Role(name=RoleName.AUDITOR.value, description="Auditor"))
+        await session.commit()
+
+    _en_sesion_nueva(entorno.maker, sembrar_rol)
+
+    # UsuarioRepository.add + assign_role
+    user = _alta_usuario(entorno)
+    user_id = uuid.UUID(user["id"])
+    # UsuarioRepository.replace_roles + update_fields
+    response = entorno.client.patch(f"/usuarios/{user_id}", json={"role": "auditor", "max_load": 6})
+    assert response.status_code == 200, response.text
+    assert response.json()["roles"] == ["auditor"]
+
+    async def usuario(session):
+        stmt = (
+            select(User)
+            .where(User.id == user_id)
+            .options(selectinload(User.roles).selectinload(UserRole.role))
+        )
+        return (await session.scalars(stmt)).one()
+
+    guardado = _en_sesion_nueva(entorno.maker, usuario)
+    assert [ur.role.name for ur in guardado.roles] == ["auditor"]
+    assert guardado.max_load == 6
+
+    # UsuarioRepository.deactivate
+    assert entorno.client.delete(f"/usuarios/{user_id}").status_code == 200
+    assert _en_sesion_nueva(entorno.maker, usuario).is_active is False
+
+    # ServiceArea/Category/Specialty/ShiftRepository.create + TechnicianRepository.save
+    ids = _catalogo(entorno)
+    response = entorno.client.patch(
+        f"/catalog/technicians/{entorno.ids['technician']}",
+        json={"shift_id": ids["shift"], "specialty_ids": [ids["specialty"]]},
+    )
+    assert response.status_code == 200, response.text
+
+    async def catalogo(session):
+        tecnico = (
+            await session.scalars(
+                select(User)
+                .where(User.id == entorno.ids["technician"])
+                .options(selectinload(User.specialties))
+            )
+        ).one()
+        return {
+            "area": await session.get(AreaServicio, uuid.UUID(ids["area"])),
+            "category": await session.get(Categoria, uuid.UUID(ids["category"])),
+            "specialty": await session.get(Especialidad, uuid.UUID(ids["specialty"])),
+            "shift": await session.get(Turno, uuid.UUID(ids["shift"])),
+            "tecnico": (str(tecnico.shift_id), [str(s.id) for s in tecnico.specialties]),
+        }
+
+    guardado = _en_sesion_nueva(entorno.maker, catalogo)
+    assert all(guardado[k] is not None for k in ("area", "category", "specialty", "shift"))
+    assert guardado["tecnico"] == (ids["shift"], [ids["specialty"]])
+
+    # SlaRepository.add_agreement + save_versions
+    agreement = entorno.client.post("/sla/agreements", json={"is_default": True})
+    assert agreement.status_code == 201, agreement.text
+    agreement_id = uuid.UUID(agreement.json()["id"])
+    versions = entorno.client.post(
+        f"/sla/agreements/{agreement_id}/versions",
+        json={
+            "valid_from": "2026-01-01T00:00:00Z",
+            "times": [{"priority": "P2", "first_response_minutes": 60, "resolution_minutes": 480}],
+        },
+    )
+    assert versions.status_code == 201, versions.text
+
+    async def sla(session):
+        acuerdo = await session.get(ServiceLevelAgreement, agreement_id)
+        filas = list(
+            await session.scalars(
+                select(ServiceLevelVersion).where(ServiceLevelVersion.agreement_id == agreement_id)
+            )
+        )
+        return acuerdo, filas
+
+    acuerdo, filas = _en_sesion_nueva(entorno.maker, sla)
+    assert acuerdo is not None
+    assert [(v.version, v.priority) for v in filas] == [(1, "P2")]
