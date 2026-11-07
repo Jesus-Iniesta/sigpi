@@ -3,6 +3,7 @@ import { RequireAuth } from '@/features/auth/require-auth'
 import { LoginPage } from '@/features/auth/login-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
+import { RevisionPage } from '@/features/clasificacion/pages/RevisionPage'
 import { RegistroAsistidoPage } from '@/features/requests/registro-asistido-page'
 import { RequestsPage } from '@/features/requests/requests-page'
 import { SolicitudDetallePage } from '@/features/requests/pages/SolicitudDetallePage'
@@ -11,6 +12,8 @@ import { UsersPage } from '@/features/users/users-page'
 import { AppLayout } from '@/routes/app-layout'
 
 const staffRoles = ['administrator', 'service_manager', 'support_agent']
+// Roles con el permiso classification.review (backend/app/core/permissions.py).
+const reviewRoles = ['administrator', 'service_manager', 'classifier']
 
 function App() {
   return (
@@ -26,6 +29,9 @@ function App() {
               element={<RegistroAsistidoPage />}
             />
             <Route path="solicitudes/:id" element={<SolicitudDetallePage />} />
+          </Route>
+          <Route element={<RequireAuth requiredRoles={reviewRoles} />}>
+            <Route path="clasificacion/revision" element={<RevisionPage />} />
           </Route>
           <Route path="catalogo" element={<CatalogPage />} />
           <Route path="sla" element={<SlaPage />} />

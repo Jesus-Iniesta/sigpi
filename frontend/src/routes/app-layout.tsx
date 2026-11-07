@@ -1,5 +1,6 @@
 import {
   Activity,
+  ClipboardCheck,
   ClipboardList,
   BookOpen,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import { cn } from '@/shared/lib/utils'
 
 const assistedRoles = ['administrator', 'service_manager', 'support_agent']
+const reviewRoles = ['administrator', 'service_manager', 'classifier']
 
 type NavigationItem = {
   label: string
@@ -31,6 +33,12 @@ const navigation: NavigationItem[] = [
     to: '/solicitudes/asistido',
     icon: PhoneCall,
     roles: assistedRoles,
+  },
+  {
+    label: 'Revisión',
+    to: '/clasificacion/revision',
+    icon: ClipboardCheck,
+    roles: reviewRoles,
   },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
