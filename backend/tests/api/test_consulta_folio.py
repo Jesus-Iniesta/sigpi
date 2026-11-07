@@ -1,10 +1,10 @@
-"""Pruebas de la consulta de una solicitud y del cierre por confirmación (S4-04, HU-04.3).
+"""Pruebas de la consulta de una solicitud y del cierre por confirmación (S4-03, HU-04.3).
 
 Cubren el criterio «cierre por confirmación»: una solicitud resuelta pasa a «Cerrada»
 cuando se confirma la solución, queda constancia en la bitácora y cualquier otro
 estado o identificador se rechaza sin modificar la solicitud.
 
-La consulta por folio (`GET /solicitudes/{folio}`) la expone S4-02. Sus pruebas se
+La consulta por folio (`GET /solicitudes/{folio}`) la expone S4-01. Sus pruebas se
 agregan en la sección final cuando ese endpoint esté integrado en `main`.
 """
 
@@ -201,6 +201,6 @@ def test_confirmar_exige_permiso_de_cierre(cliente, rol) -> None:
     assert client.get(f"/solicitudes/{request_id}").json()["status"] == "resolved"
 
 
-# --- Consulta por folio (pendiente de S4-02) -----------------------------------------
-# TODO(S4-02): agregar aquí las pruebas de `GET /solicitudes/{folio}` cuando el endpoint
+# --- Consulta por folio (pendiente de S4-01) -----------------------------------------
+# TODO(S4-01): agregar aquí las pruebas de `GET /solicitudes/{folio}` cuando el endpoint
 # esté en main: folio existente, folio inexistente (404) y acceso solo al solicitante.
