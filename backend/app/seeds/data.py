@@ -6,6 +6,7 @@ from app.domain.catalog_options import (
     ShiftOption,
 )
 from app.models.enums import Priority, SupportLevel, UserType
+from app.templates.avisos.plantillas import PLANTILLAS_AVISO
 
 # Las áreas, especialidades y turnos se toman de la fuente única de opciones (COR-04).
 SERVICE_AREA_SEEDS: tuple[str, ...] = SERVICE_AREA_OPTIONS
@@ -20,6 +21,9 @@ CATEGORY_SEEDS: tuple[tuple[str, str], ...] = (
 )
 
 PRIORITY_SEEDS: tuple[Priority, ...] = tuple(Priority)
+
+# Plantillas de aviso (S4-04): código de evento -> (asunto, cuerpo).
+NOTIFICATION_TEMPLATE_SEEDS: dict[str, tuple[str, str]] = PLANTILLAS_AVISO
 
 USER_SEEDS: tuple[dict, ...] = (
     {
