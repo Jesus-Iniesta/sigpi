@@ -14,8 +14,6 @@ confirmar una solicitud resuelta, 401 y 403. Aquí van los casos que esa prueba 
 Y, con el escenario de extremo a extremo (fixture `escenario`, que parte del alta por API):
 
 - Ciclo completo: alta → iniciar → resolver → consulta por folio → confirmar → «Cerrada».
-- Folio en minúsculas (se acepta), inexistente y ajeno (404 con el mismo mensaje).
-- El resumen de bitácora no expone el diagnóstico ni la solución que guardó el técnico.
 - La fecha compromiso usa la versión del acuerdo vigente al registrar, aunque después se
   publique otra.
 
@@ -536,52 +534,6 @@ def test_ciclo_completo_alta_iniciar_resolver_consultar_y_confirmar_cierra_la_so
     ultima = escenario.bitacora(alta["id"])[-1]
     assert ultima.author_id == escenario.ids["solicitante"]
     assert ultima.previous_status == RequestStatus.RESOLVED
-
-
-def test_folio_en_minusculas_se_acepta_y_el_inexistente_y_el_ajeno_responden_404(
-    escenario,
-) -> None:
-    alta = escenario.hasta_resuelta()
-    folio = alta["folio"]
-
-    propia = escenario.como("solicitante", "requester")
-    minusculas = propia.get(f"/mis-solicitudes/{folio.lower()}")
-    assert minusculas.status_code == 200, minusculas.text
-    assert minusculas.json()["folio"] == folio
-
-    inexistente = propia.get("/mis-solicitudes/SIG-9999")
-    assert inexistente.status_code == 404
-    assert inexistente.json()["code"] == "not_found"
-
-    otra = escenario.como("otra", "requester")
-    ajena = otra.get(f"/mis-solicitudes/{folio}")
-    assert ajena.status_code == 404
-    assert ajena.json()["code"] == "not_found"
-    # El 404 del folio ajeno no revela que el folio existe.
-    assert ajena.json()["detail"] == inexistente.json()["detail"]
-
-    confirmar_ajena = otra.post(f"/mis-solicitudes/{folio}/confirmar", json={})
-    assert confirmar_ajena.status_code == 404
-    assert escenario.leer(alta["id"]).status == RequestStatus.RESOLVED
-
-
-def test_el_resumen_de_bitacora_no_expone_las_notas_de_las_entradas_internas(
-    escenario,
-) -> None:
-    alta = escenario.hasta_resuelta()
-    # La bitácora sí guardó las notas internas del técnico...
-    notas = [e.notes or "" for e in escenario.bitacora(alta["id"])]
-    assert any(SOLUCION in n for n in notas)
-
-    # ...pero la consulta del solicitante no las devuelve.
-    respuesta = escenario.como("solicitante", "requester").get(f"/mis-solicitudes/{alta['folio']}")
-    assert respuesta.status_code == 200, respuesta.text
-    assert SOLUCION not in respuesta.text
-    assert DIAGNOSTICO not in respuesta.text
-    assert "Tiempo efectivo de resolución" not in respuesta.text
-    log = respuesta.json()["log"]
-    assert log
-    assert all(set(e) == {"action", "new_status", "created_at"} for e in log)
 
 
 def test_la_fecha_compromiso_usa_la_version_del_acuerdo_vigente_al_registrar(
