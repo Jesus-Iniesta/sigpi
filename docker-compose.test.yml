@@ -13,6 +13,7 @@ services:
       LOG_LEVEL: WARNING
     volumes:
       - ./backend:/app
+      - ./ml:/ml:ro
     command: pytest -q
 
   frontend-tests:

@@ -12,6 +12,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.identity import Role, User, UserRole
 from app.models.notification import Notification, NotificationTemplate
 from app.models.request import Request, RequestAssignment
 
@@ -21,10 +22,21 @@ class NotificacionRepository:
         self._session = session
 
     async def add_many(self, avisos: Sequence[Notification]) -> list[Notification]:
-        """Guarda todos los avisos en una sola transacción."""
+        """Agrega los avisos a la transacción en curso. No confirma: lo hace el servicio."""
         self._session.add_all(avisos)
-        await self._session.commit()
+        await self._session.flush()
         return list(avisos)
+
+    async def list_active_user_ids_with_role(self, role_name: str) -> list[uuid.UUID]:
+        """Identificadores de los usuarios activos que tienen el rol indicado."""
+        result = await self._session.scalars(
+            select(User.id)
+            .join(UserRole, UserRole.user_id == User.id)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(Role.name == role_name, User.is_active.is_(True))
+            .order_by(User.full_name, User.id)
+        )
+        return list(result)
 
     async def get_template(self, event_code: str) -> NotificationTemplate | None:
         result = await self._session.scalars(
