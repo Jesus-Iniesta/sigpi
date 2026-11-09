@@ -8,7 +8,7 @@ solicitud es el tiempo transcurrido menos la suma de esos periodos.
 """
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +54,15 @@ def minutos_restantes(
 ) -> float:
     """Minutos que faltan para vencer la resolución; negativo si ya venció."""
     return resolution_minutes - minutos_efectivos(request, ahora)
+
+
+def fecha_compromiso(request: Request) -> datetime | None:
+    """Alta + tiempo de resolución del SLA + esperas; `None` si no tiene SLA asignado."""
+    version = request.service_level_version
+    if version is None:
+        return None
+    minutos = version.resolution_minutes + minutos_suspendidos(request)
+    return as_utc(request.created_at) + timedelta(minutes=minutos)
 
 
 class SlaClockService:

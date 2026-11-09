@@ -8,12 +8,13 @@ del alcance del proyecto escolar, ver HU-07.3).
 
 import uuid
 from collections.abc import Iterable, Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.logging import get_logger, log_event
+from app.domain.eventos import EventoAviso
 from app.models.enums import (
     NotificationChannel,
     NotificationImportance,
@@ -23,80 +24,25 @@ from app.models.enums import (
 from app.models.notification import Notification
 from app.models.request import Request
 from app.repositories.notificacion_repository import NotificacionRepository
-from app.services.sla_clock_service import minutos_suspendidos
+from app.services.sla_clock_service import fecha_compromiso
 from app.services.sla_service import as_utc
+from app.templates.avisos.plantillas import PLANTILLAS_AVISO
 
 logger = get_logger("notificaciones")
 
 SIN_DATO = "—"
 
-# Códigos de evento. Deben coincidir con el catálogo de S4-04 (Emmanuel).
-EVENTO_SOLICITUD_REGISTRADA = "request_registered"
-EVENTO_SOLICITUD_ASIGNADA = "request_assigned"
-EVENTO_ESTATUS_CAMBIADO = "request_status_changed"
-EVENTO_SOLICITUD_RESUELTA = "request_resolved"
-EVENTO_SOLICITUD_CERRADA = "request_closed"
-EVENTO_RIESGO_SLA = "sla_risk"
-EVENTO_P1_SIN_ASIGNAR = "p1_unassigned"
+# Códigos de evento: alias de `app.domain.eventos.EventoAviso` (catálogo S4-04).
+EVENTO_SOLICITUD_REGISTRADA = EventoAviso.SOLICITUD_REGISTRADA
+EVENTO_SOLICITUD_ASIGNADA = EventoAviso.SOLICITUD_ASIGNADA
+EVENTO_ESTATUS_CAMBIADO = EventoAviso.ESTATUS_CAMBIADO
+EVENTO_SOLICITUD_RESUELTA = EventoAviso.SOLICITUD_RESUELTA
+EVENTO_SOLICITUD_CERRADA = EventoAviso.SOLICITUD_CERRADA
+EVENTO_RIESGO_SLA = EventoAviso.RIESGO_SLA
+EVENTO_P1_SIN_ASIGNAR = EventoAviso.P1_SIN_ASIGNAR
 
-# código de evento -> (asunto, cuerpo). Los campos entre llaves salen de `_contexto`.
-_PLANTILLAS_RESPALDO: dict[str, tuple[str, str]] = {
-    EVENTO_SOLICITUD_REGISTRADA: (
-        "Solicitud {folio} registrada",
-        (
-            "Registramos tu solicitud «{titulo}».\n"
-            "Folio: {folio} · Categoría: {categoria} · Prioridad: {prioridad}\n"
-            "Técnico: {tecnico} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_SOLICITUD_ASIGNADA: (
-        "Solicitud {folio} asignada",
-        (
-            "La solicitud «{titulo}» tiene técnico asignado.\n"
-            "Folio: {folio} · Categoría: {categoria} · Prioridad: {prioridad}\n"
-            "Técnico: {tecnico} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_ESTATUS_CAMBIADO: (
-        "Solicitud {folio}: {estado}",
-        (
-            "La solicitud «{titulo}» cambió de estatus a {estado}.\n"
-            "Folio: {folio} · Categoría: {categoria} · Prioridad: {prioridad}\n"
-            "Técnico: {tecnico} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_SOLICITUD_RESUELTA: (
-        "Solicitud {folio} resuelta",
-        (
-            "El técnico resolvió «{titulo}». Confirma si la solución funcionó.\n"
-            "Folio: {folio} · Categoría: {categoria} · Prioridad: {prioridad}\n"
-            "Técnico: {tecnico} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_SOLICITUD_CERRADA: (
-        "Solicitud {folio} cerrada",
-        (
-            "Cerramos la solicitud «{titulo}».\n"
-            "Folio: {folio} · Categoría: {categoria} · Prioridad: {prioridad}\n"
-            "Técnico: {tecnico} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_RIESGO_SLA: (
-        "Riesgo de incumplir {folio}",
-        (
-            "La solicitud «{titulo}» ya consumió el 80 % del tiempo comprometido.\n"
-            "Folio: {folio} · Prioridad: {prioridad} · Técnico: {tecnico}\n"
-            "Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-    EVENTO_P1_SIN_ASIGNAR: (
-        "Solicitud crítica {folio} sin asignar",
-        (
-            "La solicitud P1 «{titulo}» lleva cinco minutos sin técnico asignado.\n"
-            "Folio: {folio} · Categoría: {categoria} · Fecha compromiso: {fecha_compromiso}"
-        ),
-    ),
-}
+# código de evento -> (asunto, cuerpo); fuente: `app.templates.avisos.plantillas`.
+_PLANTILLAS_RESPALDO: dict[str, tuple[str, str]] = PLANTILLAS_AVISO
 
 # Mismos textos que `STATUS_LABELS` del frontend (features/requests/request-labels.ts).
 _ETIQUETAS_ESTATUS: dict[str, str] = {
@@ -133,15 +79,6 @@ def _formatear_fecha(value: datetime | None) -> str:
     if value is None:
         return SIN_DATO
     return as_utc(value).strftime("%d/%m/%Y %H:%M UTC")
-
-
-def fecha_compromiso(request: Request) -> datetime | None:
-    """Alta + tiempo de resolución del SLA + esperas; `None` si no tiene SLA asignado."""
-    version = request.service_level_version
-    if version is None:
-        return None
-    minutos = version.resolution_minutes + minutos_suspendidos(request)
-    return as_utc(request.created_at) + timedelta(minutes=minutos)
 
 
 def _tecnico_vigente(request: Request) -> str:
