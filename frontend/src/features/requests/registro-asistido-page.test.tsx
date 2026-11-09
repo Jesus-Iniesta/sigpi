@@ -42,6 +42,7 @@ const category: Category = {
 const createdRequest: Request = {
   id: 'req-1',
   requester_id: 'user-ana',
+  requester_institutional_id: null,
   category_id: 'cat-1',
   asset_id: null,
   service_level_version_id: null,
@@ -56,6 +57,9 @@ const createdRequest: Request = {
   urgency: 2,
   impact: 1,
   classification_confidence: null,
+  diagnosis: null,
+  solution: null,
+  resolution_minutes: null,
   first_response_at: null,
   resolved_at: null,
   closed_at: null,

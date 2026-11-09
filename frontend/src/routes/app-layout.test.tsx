@@ -15,6 +15,10 @@ vi.mock('@/features/auth/auth-context', () => ({
   }),
 }))
 
+vi.mock('@/features/notificaciones/components/CampanaAvisos', () => ({
+  CampanaAvisos: () => null,
+}))
+
 describe('AppLayout: menú lateral (COR-05)', () => {
   it('muestra «Tickets» en lugar de «SLA» y conserva la ruta /sla', () => {
     const { container } = render(

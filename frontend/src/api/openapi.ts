@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+  '/auth/login': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Login */
+    post: operations['login_auth_login_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/auth/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Logout */
+    post: operations['logout_auth_logout_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/auth/me': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Read Current User */
+    get: operations['read_current_user_auth_me_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/usuarios': {
     parameters: {
       query?: never
@@ -69,6 +120,23 @@ export interface paths {
     put?: never
     /** Create Area */
     post: operations['create_area_catalog_areas_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/catalog/organizational-units': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Organizational Units */
+    get: operations['list_organizational_units_catalog_organizational_units_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -180,6 +248,253 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/solicitudes/asistido': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Create Assisted Request */
+    post: operations['create_assisted_request_solicitudes_asistido_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/espera': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Put Request On Hold */
+    post: operations['put_request_on_hold_solicitudes__request_id__espera_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/reanudar': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resume Request */
+    post: operations['resume_request_solicitudes__request_id__reanudar_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Request Detail
+     * @description Detalle de una solicitud para la pantalla de atención (S3-13, HU-04.1).
+     */
+    get: operations['get_request_detail_solicitudes__request_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/diagnostico': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Register Diagnosis */
+    post: operations['register_diagnosis_solicitudes__request_id__diagnostico_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/iniciar': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Start Request */
+    post: operations['start_request_solicitudes__request_id__iniciar_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/resolver': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resolve Request */
+    post: operations['resolve_request_solicitudes__request_id__resolver_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/confirmar': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Confirm Request */
+    post: operations['confirm_request_solicitudes__request_id__confirmar_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/solicitudes/{request_id}/bitacora': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Request Log */
+    get: operations['list_request_log_solicitudes__request_id__bitacora_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/notificaciones': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Notifications
+     * @description Avisos de la persona en sesión, del más reciente al más antiguo.
+     */
+    get: operations['list_notifications_notificaciones_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/notificaciones/contador': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Count Unread Notifications
+     * @description Número de avisos sin leer: es el contador de la campana.
+     */
+    get: operations['count_unread_notifications_notificaciones_contador_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/notificaciones/leer-todas': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Mark All Notifications Read */
+    post: operations['mark_all_notifications_read_notificaciones_leer_todas_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/notificaciones/{notification_id}/leer': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Mark Notification Read */
+    post: operations['mark_notification_read_notificaciones__notification_id__leer_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/sla/options': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Options */
+    get: operations['list_options_sla_options_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/sla/agreements': {
     parameters: {
       query?: never
@@ -216,6 +531,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/sla/agreements/{agreement_id}/contrato.pdf': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Download Contract
+     * @description Contrato simulado en PDF de la versión vigente del acuerdo (COR-06A).
+     */
+    get: operations['download_contract_sla_agreements__agreement_id__contrato_pdf_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/sla/effective': {
     parameters: {
       query?: never
@@ -225,6 +560,47 @@ export interface paths {
     }
     /** Get Effective Sla */
     get: operations['get_effective_sla_sla_effective_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/auditoria': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Audit Entries
+     * @description Registros en orden cronológico, filtrados opcionalmente por entidad.
+     */
+    get: operations['list_audit_entries_auditoria_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/revision/cola': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Revision Queue
+     * @description Clasificaciones de baja confianza que esperan revisión, de la más antigua a la más
+     *     reciente.
+     */
+    get: operations['revision_queue_revision_cola_get']
     put?: never
     post?: never
     delete?: never
@@ -254,6 +630,40 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /**
+     * AuditoriaRead
+     * @description Registro de auditoría tal como se guardó; la bitácora es de solo lectura.
+     */
+    AuditoriaRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Actor Id */
+      actor_id: string | null
+      /** Action */
+      action: string
+      /** Entity Type */
+      entity_type: string
+      /** Entity Id */
+      entity_id: string
+      /** Old Values */
+      old_values: {
+        [key: string]: unknown
+      } | null
+      /** New Values */
+      new_values: {
+        [key: string]: unknown
+      } | null
+      /** Ip Address */
+      ip_address: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
     /**
      * CatalogOptionsRead
      * @description Listas cerradas del catálogo para que el frontend no las duplique.
@@ -301,6 +711,11 @@ export interface components {
       is_active: boolean
     }
     /**
+     * ClassificationSource
+     * @enum {string}
+     */
+    ClassificationSource: 'model' | 'rules' | 'human'
+    /**
      * EffectiveSlaRead
      * @description Acuerdo que aplica a una categoría y prioridad en una fecha dada.
      */
@@ -334,6 +749,13 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
     }
+    /** LoginRequest */
+    LoginRequest: {
+      /** Email */
+      email: string
+      /** Password */
+      password: string
+    }
     /** MaxLoadRange */
     MaxLoadRange: {
       /** Min */
@@ -342,25 +764,124 @@ export interface components {
       max: number
     }
     /**
+     * NotificationImportance
+     * @enum {string}
+     */
+    NotificationImportance: 'normal' | 'high'
+    /** NotificationMarkAllResult */
+    NotificationMarkAllResult: {
+      /** Updated */
+      updated: number
+    }
+    /**
+     * NotificationRead
+     * @description Un aviso tal como lo muestra la campana.
+     */
+    NotificationRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Request Id */
+      request_id: string | null
+      /** Request Folio */
+      request_folio: string | null
+      /** Subject */
+      subject: string
+      /** Body */
+      body: string
+      importance: components['schemas']['NotificationImportance']
+      /** Is Read */
+      is_read: boolean
+      /** Read At */
+      read_at: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /** NotificationUnreadCount */
+    NotificationUnreadCount: {
+      /** Unread */
+      unread: number
+    }
+    /** OrganizationalUnitRead */
+    OrganizationalUnitRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Unit Type */
+      unit_type: string
+      /** Code */
+      code: string | null
+    }
+    /**
      * Priority
      * @enum {string}
      */
     Priority: 'P1' | 'P2' | 'P3' | 'P4'
+    /**
+     * RequestAssistedCreate
+     * @description Fields accepted when a technician registers a request on behalf of a requester (HU-01.3).
+     *
+     *     Same data as `RequestCreate`, but the origin channel is mandatory and can only be
+     *     `phone` or `in_person`: the portal channel is reserved for requesters themselves.
+     */
+    RequestAssistedCreate: {
+      /** Requester Id */
+      requester_id?: string | null
+      /** Requester Institutional Id */
+      requester_institutional_id?: string | null
+      /** Category Id */
+      category_id?: string | null
+      /** Asset Id */
+      asset_id?: string | null
+      /** Related Request Id */
+      related_request_id?: string | null
+      /** Title */
+      title: string
+      /** Description */
+      description: string
+      /** Physical Location */
+      physical_location: string
+      /**
+       * Channel
+       * @enum {string}
+       */
+      channel: 'phone' | 'in_person'
+      /** Urgency */
+      urgency?: number | null
+      /** Impact */
+      impact?: number | null
+    }
     /**
      * RequestChannel
      * @enum {string}
      */
     RequestChannel: 'portal' | 'phone' | 'in_person'
     /**
+     * RequestConfirmCreate
+     * @description Datos para confirmar una solicitud resuelta: notas opcionales del solicitante.
+     */
+    RequestConfirmCreate: {
+      /** Notes */
+      notes?: string | null
+    }
+    /**
      * RequestCreate
      * @description Fields accepted when a requester submits a new service request.
      */
     RequestCreate: {
-      /**
-       * Requester Id
-       * Format: uuid
-       */
-      requester_id: string
+      /** Requester Id */
+      requester_id?: string | null
+      /** Requester Institutional Id */
+      requester_institutional_id?: string | null
       /** Category Id */
       category_id?: string | null
       /** Asset Id */
@@ -381,6 +902,46 @@ export interface components {
       impact?: number | null
     }
     /**
+     * RequestDiagnosisCreate
+     * @description Diagnóstico que registra el técnico mientras atiende la solicitud (HU-04.1).
+     */
+    RequestDiagnosisCreate: {
+      /** Diagnosis */
+      diagnosis: string
+    }
+    /**
+     * RequestLogRead
+     * @description Public representation of a bitácora entry returned by the API.
+     */
+    RequestLogRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string
+      /**
+       * Author Id
+       * Format: uuid
+       */
+      author_id: string
+      previous_status: components['schemas']['RequestStatus'] | null
+      new_status: components['schemas']['RequestStatus'] | null
+      /** Action */
+      action: string
+      /** Notes */
+      notes: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
      * RequestRead
      * @description Public representation of a service request returned by the API.
      */
@@ -390,11 +951,10 @@ export interface components {
        * Format: uuid
        */
       id: string
-      /**
-       * Requester Id
-       * Format: uuid
-       */
-      requester_id: string
+      /** Requester Id */
+      requester_id: string | null
+      /** Requester Institutional Id */
+      requester_institutional_id: string | null
       /** Category Id */
       category_id: string | null
       /** Asset Id */
@@ -420,6 +980,12 @@ export interface components {
       impact: number | null
       /** Classification Confidence */
       classification_confidence: number | null
+      /** Diagnosis */
+      diagnosis: string | null
+      /** Solution */
+      solution: string | null
+      /** Resolution Minutes */
+      resolution_minutes: number | null
       /** First Response At */
       first_response_at: string | null
       /** Resolved At */
@@ -438,11 +1004,22 @@ export interface components {
       updated_at: string
     }
     /**
+     * RequestResolveCreate
+     * @description Datos para resolver una solicitud: la solución aplicada y, si falta, el diagnóstico.
+     */
+    RequestResolveCreate: {
+      /** Solution */
+      solution: string
+      /** Diagnosis */
+      diagnosis?: string | null
+    }
+    /**
      * RequestStatus
      * @enum {string}
      */
     RequestStatus:
       | 'registered'
+      | 'pending_verification'
       | 'classified'
       | 'pending_review'
       | 'assigned'
@@ -452,6 +1029,56 @@ export interface components {
       | 'resolved'
       | 'closed'
       | 'closed_unverified'
+    /**
+     * RequestWaitCreate
+     * @description Datos para pasar una solicitud a «En espera» y suspender el reloj del SLA.
+     */
+    RequestWaitCreate: {
+      reason: components['schemas']['WaitReason']
+      /** Detail */
+      detail?: string | null
+    }
+    /**
+     * RevisionItem
+     * @description Una clasificación de baja confianza que espera revisión humana.
+     */
+    RevisionItem: {
+      /**
+       * Result Id
+       * Format: uuid
+       */
+      result_id: string
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string
+      /** Folio */
+      folio: string
+      /** Title */
+      title: string
+      /** Description */
+      description: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Category Id */
+      category_id: string | null
+      /** Category Name */
+      category_name: string | null
+      /** Urgency */
+      urgency: number
+      /** Impact */
+      impact: number
+      priority: components['schemas']['Priority'] | null
+      /** Confidence */
+      confidence: number
+      source: components['schemas']['ClassificationSource']
+      /** Model Version */
+      model_version: string | null
+    }
     /**
      * RoleName
      * @enum {string}
@@ -464,17 +1091,6 @@ export interface components {
       | 'knowledge_manager'
       | 'auditor'
       | 'requester'
-    /** OrganizationalUnitRead */
-    OrganizationalUnitRead: {
-      /** Id */
-      id: string
-      /** Name */
-      name: string
-      /** Unit Type */
-      unit_type: string
-      /** Code */
-      code: string | null
-    }
     /** ServiceAreaCreate */
     ServiceAreaCreate: {
       /**
@@ -545,7 +1161,7 @@ export interface components {
      */
     SlaAgreementCreate: {
       /** Name */
-      name: string
+      name?: string | null
       /** Category Id */
       category_id?: string | null
       /**
@@ -574,6 +1190,16 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+    }
+    /**
+     * SlaOptionsRead
+     * @description Nombres disponibles para los acuerdos de servicio.
+     */
+    SlaOptionsRead: {
+      /** Default Name */
+      default_name: string
+      /** Service Types */
+      service_types: string[]
     }
     /**
      * SlaPriorityTimes
@@ -700,6 +1326,17 @@ export interface components {
       /** Specialty Ids */
       specialty_ids: string[]
     }
+    /** TokenResponse */
+    TokenResponse: {
+      /** Access Token */
+      access_token: string
+      /**
+       * Token Type
+       * @default bearer
+       */
+      token_type: string
+      user: components['schemas']['UserRead']
+    }
     /**
      * UserCreate
      * @description Fields accepted when provisioning a new account from the directory.
@@ -707,6 +1344,8 @@ export interface components {
     UserCreate: {
       /** Institutional Id */
       institutional_id: string
+      /** Password */
+      password: string
       role: components['schemas']['RoleName']
       /** Unit Id */
       unit_id?: string | null
@@ -781,6 +1420,11 @@ export interface components {
       /** Context */
       ctx?: Record<string, never>
     }
+    /**
+     * WaitReason
+     * @enum {string}
+     */
+    WaitReason: 'external_input' | 'user_information'
   }
   responses: never
   parameters: never
@@ -790,6 +1434,88 @@ export interface components {
 }
 export type $defs = Record<string, never>
 export interface operations {
+  login_auth_login_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TokenResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  logout_auth_logout_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  read_current_user_auth_me_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UserRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_users_usuarios_get: {
     parameters: {
       query?: never
@@ -815,7 +1541,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -850,7 +1578,9 @@ export interface operations {
       path: {
         user_id: string
       }
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody?: never
     responses: {
@@ -881,7 +1611,9 @@ export interface operations {
       path: {
         user_id: string
       }
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -954,7 +1686,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -978,6 +1712,26 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_organizational_units_catalog_organizational_units_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['OrganizationalUnitRead'][]
         }
       }
     }
@@ -1018,7 +1772,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1082,7 +1838,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1135,7 +1893,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1201,7 +1961,9 @@ export interface operations {
       path: {
         user_id: string
       }
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1234,7 +1996,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1258,6 +2022,471 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_assisted_request_solicitudes_asistido_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestAssistedCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  put_request_on_hold_solicitudes__request_id__espera_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestWaitCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  resume_request_solicitudes__request_id__reanudar_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_request_detail_solicitudes__request_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  register_diagnosis_solicitudes__request_id__diagnostico_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestDiagnosisCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  start_request_solicitudes__request_id__iniciar_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  resolve_request_solicitudes__request_id__resolver_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestResolveCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  confirm_request_solicitudes__request_id__confirmar_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestConfirmCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_request_log_solicitudes__request_id__bitacora_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        request_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RequestLogRead'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_notifications_notificaciones_get: {
+    parameters: {
+      query?: {
+        only_unread?: boolean
+        limit?: number
+        offset?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['NotificationRead'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  count_unread_notifications_notificaciones_contador_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['NotificationUnreadCount']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  mark_all_notifications_read_notificaciones_leer_todas_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['NotificationMarkAllResult']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  mark_notification_read_notificaciones__notification_id__leer_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        notification_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['NotificationRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_options_sla_options_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SlaOptionsRead']
         }
       }
     }
@@ -1287,7 +2516,9 @@ export interface operations {
       query?: never
       header?: never
       path?: never
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1355,7 +2586,9 @@ export interface operations {
       path: {
         agreement_id: string
       }
-      cookie?: never
+      cookie?: {
+        access_token?: string | null
+      }
     }
     requestBody: {
       content: {
@@ -1370,6 +2603,39 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SlaVersionRead'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  download_contract_sla_agreements__agreement_id__contrato_pdf_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        agreement_id: string
+      }
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/pdf': unknown
         }
       }
       /** @description Validation Error */
@@ -1403,6 +2669,71 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['EffectiveSlaRead']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_audit_entries_auditoria_get: {
+    parameters: {
+      query?: {
+        entity_type?: string | null
+        entity_id?: string | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AuditoriaRead'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  revision_queue_revision_cola_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        access_token?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['RevisionItem'][]
         }
       }
       /** @description Validation Error */

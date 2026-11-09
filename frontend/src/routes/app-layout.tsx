@@ -1,5 +1,6 @@
 import {
   Activity,
+  ClipboardCheck,
   ClipboardList,
   BookOpen,
   LayoutDashboard,
@@ -11,9 +12,11 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
+import { CampanaAvisos } from '@/features/notificaciones/components/CampanaAvisos'
 import { cn } from '@/shared/lib/utils'
 
 const assistedRoles = ['administrator', 'service_manager', 'support_agent']
+const reviewRoles = ['administrator', 'service_manager', 'classifier']
 
 type NavigationItem = {
   label: string
@@ -31,6 +34,12 @@ const navigation: NavigationItem[] = [
     to: '/solicitudes/asistido',
     icon: PhoneCall,
     roles: assistedRoles,
+  },
+  {
+    label: 'Revisión',
+    to: '/clasificacion/revision',
+    icon: ClipboardCheck,
+    roles: reviewRoles,
   },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
@@ -129,6 +138,7 @@ export function AppLayout() {
             <span className="hidden text-sm text-[#718096] sm:inline">
               Ciclo operativo 2026
             </span>
+            <CampanaAvisos />
             <div className="grid size-9 place-items-center rounded-full bg-[#d9eee9] text-xs font-bold text-[#0f766e]">
               {initials}
             </div>

@@ -70,6 +70,17 @@ class NotificationStatus(StrEnum):
     FAILED = "failed"
 
 
+class NotificationChannel(StrEnum):
+    """Medio por el que llega el aviso. En el proyecto escolar solo existe la aplicación."""
+
+    IN_APP = "in_app"
+
+
+class NotificationImportance(StrEnum):
+    NORMAL = "normal"
+    HIGH = "high"
+
+
 class ArticleStatus(StrEnum):
     DRAFT = "draft"
     PENDING_VALIDATION = "pending_validation"
