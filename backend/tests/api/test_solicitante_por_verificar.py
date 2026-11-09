@@ -12,6 +12,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401
 from app.api.dependencies import get_current_user
+from app.api.routers.solicitudes import get_clasificacion_service
 from app.db.base import Base
 from app.db.session import get_session
 from app.integrations.directory_client import StubDirectoryClient
@@ -86,6 +87,8 @@ def client(db):
 
     fastapi_app.dependency_overrides[get_session] = override_session
     fastapi_app.dependency_overrides[get_current_user] = override_user
+    # S4-13: aquí solo se prueba el registro; la clasificación va en test_alta_clasificada.py.
+    fastapi_app.dependency_overrides[get_clasificacion_service] = lambda: None
     try:
         yield TestClient(fastapi_app)
     finally:

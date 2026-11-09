@@ -13,7 +13,12 @@ import { AppLayout } from '@/routes/app-layout'
 
 const staffRoles = ['administrator', 'service_manager', 'support_agent']
 // Roles con el permiso classification.review (backend/app/core/permissions.py).
-const reviewRoles = ['administrator', 'service_manager', 'classifier']
+const reviewRoles = [
+  'administrator',
+  'service_manager',
+  'classifier',
+  'support_agent',
+]
 
 function App() {
   return (

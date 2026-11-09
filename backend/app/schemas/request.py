@@ -1,10 +1,14 @@
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import Priority, RequestChannel, RequestStatus, WaitReason
+
+if TYPE_CHECKING:
+    from app.models.classification import ClassificationResult
+    from app.models.request import Request
 
 
 class RequestCreate(BaseModel):
@@ -93,6 +97,37 @@ class RequestRead(BaseModel):
     closed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    # Última clasificación automática (HU-02.1, AC2). Solo los llena el detalle
+    # (`GET /solicitudes/{id}`); en las demás respuestas quedan en `None`.
+    proposed_category_id: uuid.UUID | None = None
+    proposed_category_name: str | None = None
+    model_version: str | None = None
+
+    @classmethod
+    def con_clasificacion(
+        cls, request: "Request", resultado: "ClassificationResult | None"
+    ) -> "RequestRead":
+        """Detalle de la solicitud con la categoría propuesta, la confianza y la versión
+        del modelo de su última clasificación. Sin resultado, esos campos quedan vacíos."""
+        datos = cls.model_validate(request)
+        if resultado is None:
+            return datos
+        return datos.model_copy(
+            update={
+                "proposed_category_id": resultado.category_id,
+                "proposed_category_name": (
+                    resultado.category.name if resultado.category is not None else None
+                ),
+                "model_version": (
+                    resultado.model_version.version if resultado.model_version is not None else None
+                ),
+                "classification_confidence": (
+                    datos.classification_confidence
+                    if datos.classification_confidence is not None
+                    else float(resultado.confidence)
+                ),
+            }
+        )
 
 
 class RequestListItem(BaseModel):

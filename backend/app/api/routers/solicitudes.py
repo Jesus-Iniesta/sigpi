@@ -17,6 +17,7 @@ from app.schemas.request import (
     RequestRead,
     RequestWaitCreate,
 )
+from app.services.clasificacion_service import ClasificacionService
 from app.services.sla_clock_service import (
     EstadoInvalidoError,
     SlaClockService,
@@ -27,10 +28,22 @@ from app.services.solicitud_service import SolicitudService, SolicitudValidation
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
 
 
+def get_clasificacion_service(
+    session: AsyncSession = Depends(get_session),
+) -> ClasificacionService:
+    return ClasificacionService(session)
+
+
 def get_solicitud_service(
     session: AsyncSession = Depends(get_session),
+    clasificacion: ClasificacionService = Depends(get_clasificacion_service),
 ) -> SolicitudService:
-    return SolicitudService(SolicitudRepository(session), session, directory=StubDirectoryClient())
+    return SolicitudService(
+        SolicitudRepository(session),
+        session,
+        directory=StubDirectoryClient(),
+        clasificacion=clasificacion,
+    )
 
 
 def get_sla_clock_service(
@@ -42,11 +55,11 @@ def get_sla_clock_service(
 @router.post("", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
 async def create_request(
     payload: RequestCreate,
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: SolicitudService = Depends(get_solicitud_service),
 ) -> RequestRead:
     try:
-        result = await service.create_request(payload)
+        result = await service.create_request(payload, registered_by_id=current_user.id)
         return RequestRead.model_validate(result)
     except SolicitudValidationError as exc:
         raise HTTPException(

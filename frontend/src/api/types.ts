@@ -28,6 +28,16 @@ export type CreateAssistedRequestInput = Omit<CreateRequestInput, 'channel'> & {
   channel: AssistedChannel
 }
 export type Priority = ApiSchemas['Priority']
+/*
+ * Clasificación automática que acompaña al detalle de una solicitud (S4-13, HU-02.1 AC2).
+ * `openapi.ts` todavía no incluye estos campos de RequestRead; se agregan aquí.
+ */
+export type RequestClassification = {
+  proposed_category_id: string | null
+  proposed_category_name: string | null
+  classification_confidence: number | null
+  model_version: string | null
+}
 export type WaitReason = 'external_input' | 'user_information'
 export type SlaAgreement = ApiSchemas['SlaAgreementRead']
 export type CreateSlaAgreementInput = ApiSchemas['SlaAgreementCreate']

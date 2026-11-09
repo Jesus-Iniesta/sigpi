@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import require_permission
+from app.api.routers.solicitudes import get_solicitud_service
 from app.core.permissions import Permission
 from app.db.session import get_session
 from app.models.identity import User
@@ -18,6 +19,7 @@ from app.schemas.request import (
 )
 from app.services.seguimiento_service import SeguimientoService
 from app.services.sla_clock_service import EstadoInvalidoError, SolicitudNoEncontradaError
+from app.services.solicitud_service import SolicitudService
 
 router = APIRouter(prefix="/solicitudes", tags=["seguimiento"])
 
@@ -33,13 +35,15 @@ async def get_request_detail(
     request_id: uuid.UUID,
     _technician: User = Depends(require_permission(Permission.REQUESTS_UPDATE)),
     service: SeguimientoService = Depends(get_seguimiento_service),
+    solicitudes: SolicitudService = Depends(get_solicitud_service),
 ) -> RequestRead:
-    """Detalle de una solicitud para la pantalla de atención (S3-13, HU-04.1)."""
+    """Detalle de una solicitud para la pantalla de atención (S3-13, HU-04.1), con la
+    categoría propuesta, la confianza y la versión del modelo (HU-02.1, AC2)."""
     try:
         result = await service.obtener(request_id)
     except SolicitudNoEncontradaError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return RequestRead.model_validate(result)
+    return RequestRead.con_clasificacion(result, await solicitudes.ultima_clasificacion(request_id))
 
 
 @router.post("/{request_id}/diagnostico", response_model=RequestRead)

@@ -6,8 +6,9 @@ umbral de riesgo (`sla_warning_threshold`, 80 % por defecto) del tiempo de
 resolución comprometido para su prioridad, se marcan con `sla_risk_alerted_at`
 para no volver a detectarlas.
 
-En esta tarea el monitor solo detecta y marca. La emisión del aviso (S4-09) se
-conecta mediante el parámetro `al_detectar`, que por ahora solo registra en el log.
+Por cada solicitud detectada se emite el aviso de riesgo (S4-09) al técnico vigente y a
+los jefes de servicio. Marcar y avisar se confirman en una sola transacción: si el aviso
+falla, la solicitud no queda marcada y se reintenta en la siguiente vuelta.
 """
 
 import asyncio
@@ -24,6 +25,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger, log_event
 from app.models.enums import RequestStatus
 from app.models.request import Request
+from app.services.notificacion_service import NotificacionService
 from app.services.sla_clock_service import minutos_efectivos
 
 logger = get_logger("sla_monitor")
@@ -70,6 +72,17 @@ async def registrar_en_log(_session: AsyncSession, solicitudes: Sequence[Request
         )
 
 
+async def emitir_alertas_riesgo(session: AsyncSession, solicitudes: Sequence[Request]) -> None:
+    """Acción por defecto al detectar: registra en el log y emite el aviso de riesgo.
+
+    No confirma; el corte de cada aviso es el `sla_risk_alerted_at` que dejó la vuelta.
+    """
+    await registrar_en_log(session, solicitudes)
+    servicio = NotificacionService(session)
+    for request in solicitudes:
+        await servicio.alerta_riesgo(request, request.sla_risk_alerted_at or _ahora())
+
+
 class SlaMonitorService:
     def __init__(self, session: AsyncSession, umbral: float | None = None) -> None:
         self._session = session
@@ -104,7 +117,7 @@ class SlaMonitorService:
     async def ejecutar_vuelta(
         self,
         ahora: datetime | None = None,
-        al_detectar: AlDetectar = registrar_en_log,
+        al_detectar: AlDetectar = emitir_alertas_riesgo,
     ) -> list[Request]:
         """Una vuelta del monitor: detecta, marca, avisa y confirma la transacción."""
         corte = ahora or _ahora()
@@ -120,7 +133,7 @@ class SlaMonitorService:
 async def ejecutar_monitor(
     session_factory: async_sessionmaker[AsyncSession],
     intervalo_segundos: float,
-    al_detectar: AlDetectar = registrar_en_log,
+    al_detectar: AlDetectar = emitir_alertas_riesgo,
 ) -> None:
     """Bucle del monitor: una vuelta por intervalo, cada una con su propia sesión.
 
