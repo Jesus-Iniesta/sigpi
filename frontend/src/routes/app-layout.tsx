@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  FileSearch,
   PhoneCall,
   Timer,
   Users,
@@ -17,6 +18,7 @@ import { cn } from '@/shared/lib/utils'
 
 const assistedRoles = ['administrator', 'service_manager', 'support_agent']
 const reviewRoles = ['administrator', 'service_manager', 'classifier']
+const requesterRoles = ['requester']
 
 type NavigationItem = {
   label: string
@@ -40,6 +42,12 @@ const navigation: NavigationItem[] = [
     to: '/clasificacion/revision',
     icon: ClipboardCheck,
     roles: reviewRoles,
+  },
+  {
+    label: 'Mis solicitudes',
+    to: '/mis-solicitudes',
+    icon: FileSearch,
+    roles: requesterRoles,
   },
   { label: 'Usuarios', to: '/usuarios', icon: Users },
   { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
