@@ -34,8 +34,12 @@ class ClasificacionService:
         self._repository = ClasificacionRepository(session)
         self._clasificador = clasificador if clasificador is not None else obtener_clasificador()
 
-    async def clasificar(self, request: Request) -> ClassificationResult:
-        """Clasifica la solicitud, guarda el resultado y confirma la transacción."""
+    async def clasificar(self, request: Request, *, confirmar: bool = True) -> ClassificationResult:
+        """Clasifica la solicitud, guarda el resultado y confirma la transacción.
+
+        Con `confirmar=False` el resultado queda en la transacción en curso para que quien
+        orquesta lo confirme junto con el estatus de la solicitud (regla 7).
+        """
         prediccion = self._clasificador.predecir(texto_de(request))
         model_version = await self._version_para(prediccion)
         result = await self._repository.add_result(
@@ -49,7 +53,8 @@ class ClasificacionService:
                 impact=prediccion.impacto,
             )
         )
-        await self._repository.commit()
+        if confirmar:
+            await self._repository.commit()
         log_event(
             logger,
             "solicitud_clasificada",

@@ -8,6 +8,10 @@ Criterios de aceptación cubiertos:
 - AC2: se rechaza una resolución menor o igual a la primera respuesta.
 - AC3: si una combinación categoría-prioridad no tiene acuerdo, se aplica el
   predeterminado y se devuelve un aviso para notificar la omisión.
+
+`asignar_version_vigente` liga una solicitud con la versión vigente al fijar su
+prioridad (S4-13 y S4-16); de esa versión salen la fecha compromiso y el monitor del
+umbral de riesgo (S4-08).
 """
 
 import uuid
@@ -15,6 +19,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
+from app.core.logging import get_logger, log_event
 from app.domain.auditoria import AuditContext, snapshot
 from app.domain.sla_options import (
     AGREEMENT_DEFAULT_NAME,
@@ -22,10 +27,15 @@ from app.domain.sla_options import (
     is_allowed_agreement_name,
 )
 from app.models.enums import Priority
+from app.models.request import Request, RequestLog
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 from app.repositories.sla_repository import SlaRepository
 from app.schemas.sla import SlaAgreementCreate, SlaVersionCreate
 from app.services.auditoria_service import AuditoriaService
+
+logger = get_logger("sla")
+
+ACCION_SIN_ACUERDO = "Sin acuerdo de nivel de servicio vigente"
 
 CAMPOS_ACUERDO = ("id", "name", "category_id", "is_default", "is_active")
 CAMPOS_VERSION = (
@@ -66,6 +76,7 @@ class SlaNotConfiguredError(NotFoundError):
 class EffectiveSla:
     agreement_id: uuid.UUID
     agreement_name: str
+    version_id: uuid.UUID
     version: int
     priority: Priority
     first_response_minutes: int
@@ -235,6 +246,46 @@ class SlaService:
             f"No hay acuerdo propio ni predeterminado para la prioridad {priority.value}."
         )
 
+    async def asignar_version_vigente(
+        self, request: Request, author_id: uuid.UUID
+    ) -> EffectiveSla | None:
+        """Asigna a la solicitud la versión del acuerdo vigente en su fecha de registro.
+
+        Usa el acuerdo de su categoría o, si no tiene, el predeterminado, para la prioridad
+        ya calculada. Si no hay versión vigente, la solicitud sigue sin acuerdo: se registra
+        el evento, se deja constancia en la bitácora y se devuelve `None` sin fallar. No
+        confirma; la transacción la cierra el servicio que orquesta.
+        """
+        if request.priority is None:
+            return None
+        prioridad = Priority(request.priority)
+        try:
+            vigente = await self.resolve_effective(
+                request.category_id, prioridad, request.created_at
+            )
+        except SlaNotConfiguredError as exc:
+            log_event(
+                logger,
+                "sla_sin_version_vigente",
+                level="WARNING",
+                folio=request.folio,
+                prioridad=prioridad.value,
+            )
+            await self._repository.add_log(
+                RequestLog(
+                    request_id=request.id,
+                    author_id=author_id,
+                    action=ACCION_SIN_ACUERDO,
+                    notes=f"{exc} La solicitud continúa sin fecha compromiso.",
+                )
+            )
+            return None
+        request.service_level_version = await self._repository.get_version(vigente.version_id)
+        request.service_level_version_id = vigente.version_id
+        if vigente.notice is not None:
+            log_event(logger, "sla_predeterminado_aplicado", folio=request.folio)
+        return vigente
+
     @staticmethod
     def _build(
         agreement: ServiceLevelAgreement,
@@ -246,6 +297,7 @@ class SlaService:
         return EffectiveSla(
             agreement_id=agreement.id,
             agreement_name=agreement.name,
+            version_id=version.id,
             version=version.version,
             priority=Priority(version.priority),
             first_response_minutes=version.first_response_minutes,
