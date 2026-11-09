@@ -1,5 +1,5 @@
 import { apiFetch } from '@/api/client'
-import type { Priority } from '@/api/types'
+import type { Priority, RequestClassification } from '@/api/types'
 
 /*
  * Tipos escritos a mano a partir de los esquemas RequestRead y RequestLogRead del backend.
@@ -48,7 +48,7 @@ export type RequestDetail = {
   closed_at: string | null
   created_at: string
   updated_at: string
-}
+} & RequestClassification
 
 export type RequestLogEntry = {
   id: string

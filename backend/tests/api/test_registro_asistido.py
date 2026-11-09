@@ -23,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
 from app.api.dependencies import get_current_user
+from app.api.routers.solicitudes import get_clasificacion_service
 from app.db.base import Base
 from app.db.session import get_session
 from app.domain.estados import estado_inicial
@@ -105,6 +106,8 @@ def cliente(entorno):
     fastapi_app.dependency_overrides[get_current_user] = lambda: _como(
         ids["tecnico"], "support_agent"
     )
+    # S4-13: aquí solo se prueba el registro; la clasificación va en test_alta_clasificada.py.
+    fastapi_app.dependency_overrides[get_clasificacion_service] = lambda: None
     try:
         yield TestClient(fastapi_app), ids
     finally:
