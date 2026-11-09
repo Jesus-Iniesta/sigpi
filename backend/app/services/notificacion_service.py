@@ -195,6 +195,40 @@ class NotificacionService:
         )
         return guardados
 
+    async def emitir(
+        self, evento: EventoAviso, request_id: uuid.UUID, *, ahora: datetime | None = None
+    ) -> list[Notification]:
+        """Avisa un evento del ciclo de vida a quienes indica el catálogo (S4-07, HU-07.1).
+
+        Los destinatarios salen de `domain.eventos.destinatarios`: el solicitante, el
+        técnico vigente y, si el evento lo pide, los jefes de servicio activos. No confirma:
+        el aviso queda en la transacción del cambio y la confirma quien orquesta.
+        """
+        contexto = await self._repository.get_request_context(request_id)
+        if contexto is None:
+            raise NotFoundError(f"La solicitud {request_id} no existe.")
+        asignacion = _asignacion_vigente(contexto)
+        regla = eventos.CATALOGO_EVENTOS[EventoAviso(evento)]
+        jefes = (
+            await self._repository.list_active_user_ids_with_role(ROL_JEFES)
+            if eventos.Destinatario.JEFES in regla.destinatarios
+            else []
+        )
+        destinatarios = eventos.destinatarios(
+            evento,
+            contexto.requester_id,
+            asignacion.technician_id if asignacion is not None else None,
+            jefes,
+        )
+        return await self.notificar_evento(
+            evento,
+            contexto.id,
+            destinatarios,
+            importance=regla.importancia,
+            ahora=ahora,
+            confirmar=False,
+        )
+
     async def alerta_riesgo(self, request: Request, ahora: datetime) -> list[Notification]:
         """Avisa que la solicitud llegó al umbral de riesgo del SLA (S4-09, HU-07.2).
 

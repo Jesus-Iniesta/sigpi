@@ -3,6 +3,11 @@
 Cada acción del técnico deja una entrada en la bitácora, que solo admite altas: el
 historial nunca se reescribe. El diagnóstico y la solución vigentes se guardan además
 en la solicitud para mostrarlos sin recorrer toda la bitácora.
+
+Cada cambio de estatus avisa a sus destinatarios (S4-07, HU-07.1): iniciar la atención
+emite `request_status_changed`; resolver, `request_resolved`, y confirmar,
+`request_closed`. El aviso se guarda en la misma transacción que el cambio: si su
+escritura falla, el cambio tampoco se guarda.
 """
 
 import uuid
@@ -13,8 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domain.estados import puede_diagnosticar, puede_iniciar, puede_resolver
+from app.domain.eventos import EventoAviso
 from app.models.enums import RequestStatus
 from app.models.request import Request, RequestLog
+from app.services.notificacion_service import NotificacionService
 from app.services.sla_clock_service import (
     EstadoInvalidoError,
     SolicitudNoEncontradaError,
@@ -27,8 +34,24 @@ def _ahora() -> datetime:
 
 
 class SeguimientoService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self, session: AsyncSession, notificaciones: NotificacionService | None = None
+    ) -> None:
         self._session = session
+        self._notificaciones = notificaciones or NotificacionService(session)
+
+    async def _confirmar_con_aviso(
+        self, request_id: uuid.UUID, evento: EventoAviso, corte: datetime
+    ) -> Request:
+        """Guarda el aviso del evento y confirma el cambio y el aviso en una transacción."""
+        try:
+            await self._session.flush()
+            await self._notificaciones.emitir(evento, request_id, ahora=corte)
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            raise
+        return await self._load(request_id)
 
     async def _load(self, request_id: uuid.UUID) -> Request:
         result = await self._session.scalars(
@@ -91,8 +114,7 @@ class SeguimientoService:
                 action="Atención iniciada",
             )
         )
-        await self._session.commit()
-        return await self._load(request_id)
+        return await self._confirmar_con_aviso(request_id, EventoAviso.ESTATUS_CAMBIADO, corte)
 
     async def resolver(
         self,
@@ -135,8 +157,7 @@ class SeguimientoService:
                 ),
             )
         )
-        await self._session.commit()
-        return await self._load(request_id)
+        return await self._confirmar_con_aviso(request_id, EventoAviso.SOLICITUD_RESUELTA, corte)
 
     async def confirmar(
         self,
@@ -168,8 +189,7 @@ class SeguimientoService:
                 notes=notes,
             )
         )
-        await self._session.commit()
-        return await self._load(request_id)
+        return await self._confirmar_con_aviso(request_id, EventoAviso.SOLICITUD_CERRADA, corte)
 
     async def listar_bitacora(self, request_id: uuid.UUID) -> list[RequestLog]:
         """Entradas de la bitácora de una solicitud, de la más antigua a la más reciente."""

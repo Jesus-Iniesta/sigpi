@@ -2,7 +2,11 @@
 classification at registration time (HU-02.1, S4-13).
 
 Al fijar la prioridad se asigna la versión vigente del acuerdo de nivel de servicio; el
-resultado, el estatus y la versión se confirman en una sola transacción (regla 7)."""
+resultado, el estatus y la versión se confirman en una sola transacción (regla 7).
+
+El alta avisa al solicitante con `request_registered` (S4-07, HU-07.1) en la misma
+transacción, ya con la categoría, la prioridad y la fecha compromiso que deja la
+clasificación. Si la escritura del aviso falla, la solicitud no se registra."""
 
 import uuid
 
@@ -12,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger, log_event
 from app.domain.directory import DirectoryClient
 from app.domain.estados import estado_inicial
+from app.domain.eventos import EventoAviso
 from app.models.catalog import Categoria
 from app.models.classification import ClassificationResult, ModelVersion
 from app.models.enums import RequestChannel, RequestStatus
@@ -24,6 +29,7 @@ from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import RequestAssistedCreate, RequestCreate
 from app.services.auditoria_service import AuditoriaService
 from app.services.clasificacion_service import ClasificacionService
+from app.services.notificacion_service import NotificacionService
 from app.services.prioridad_service import PrioridadInvalidaError, PrioridadService
 from app.services.revision_service import decidir_estatus
 from app.services.sla_service import SlaService
@@ -51,6 +57,7 @@ class SolicitudService:
         directory: DirectoryClient | None = None,
         clasificacion: ClasificacionService | None = None,
         sla: SlaService | None = None,
+        notificaciones: NotificacionService | None = None,
     ) -> None:
         self._repository = repository
         self._session = session
@@ -61,12 +68,14 @@ class SolicitudService:
         self._sla = sla or SlaService(
             SlaRepository(session), AuditoriaService(AuditoriaRepository(session))
         )
+        self._notificaciones = notificaciones or NotificacionService(session)
 
     async def create_request(
         self, payload: RequestCreate, registered_by_id: uuid.UUID | None = None
     ) -> Request:
         request = await self._register(payload)
-        return await self._clasificar(request, registered_by_id, conservar_niveles=False)
+        await self._clasificar(request, registered_by_id, conservar_niveles=False)
+        return await self._confirmar_alta(request)
 
     async def create_assisted_request(
         self, payload: RequestAssistedCreate, registered_by_id: uuid.UUID
@@ -83,7 +92,19 @@ class SolicitudService:
             notes="Registro asistido: el técnico capturó la solicitud en nombre del solicitante.",
         )
         request = await self._register(payload, log)
-        return await self._clasificar(request, registered_by_id, conservar_niveles=True)
+        await self._clasificar(request, registered_by_id, conservar_niveles=True)
+        return await self._confirmar_alta(request)
+
+    async def _confirmar_alta(self, request: Request) -> Request:
+        """Guarda el aviso de alta y confirma la solicitud, su clasificación y el aviso."""
+        try:
+            await self._notificaciones.emitir(EventoAviso.SOLICITUD_REGISTRADA, request.id)
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            raise
+        await self._session.refresh(request)
+        return request
 
     async def ultima_clasificacion(self, request_id: uuid.UUID) -> ClassificationResult | None:
         """Último resultado de clasificación de la solicitud, con categoría y versión."""
@@ -102,41 +123,16 @@ class SolicitudService:
         Con `conservar_niveles` (registro asistido) se respetan la urgencia y el impacto que
         capturó el técnico; el clasificador solo completa los que falten. Si el clasificador
         falla, la solicitud queda «Registrada» y el alta no falla. El resultado, el estatus
-        y la versión se confirman juntos: si algo falla, no queda ninguno.
+        y la versión se escriben en un punto de guardado: si algo falla, no queda ninguno.
+        No confirma: el alta se confirma completa en `_confirmar_alta`.
         """
         if self._clasificacion is None or request.status != RequestStatus.REGISTERED:
             return request
         author_id = author_id or request.requester_id
         try:
-            resultado = await self._clasificacion.clasificar(request, confirmar=False)
-            estatus = decidir_estatus(resultado)
-            request.classification_confidence = float(resultado.confidence)
-            if estatus == RequestStatus.CLASSIFIED:
-                if resultado.category_id is not None:
-                    request.category_id = resultado.category_id
-                if not conservar_niveles or request.urgency is None:
-                    request.urgency = resultado.urgency
-                if not conservar_niveles or request.impact is None:
-                    request.impact = resultado.impact
-                self._prioridad.aplicar(request)
-            self._session.add(
-                RequestLog(
-                    request_id=request.id,
-                    author_id=author_id,
-                    previous_status=request.status,
-                    new_status=estatus,
-                    action=ACCION_CLASIFICACION,
-                    notes=_nota_clasificacion(
-                        float(resultado.confidence), await self._version(resultado), estatus
-                    ),
-                )
-            )
-            request.status = estatus
-            if estatus == RequestStatus.CLASSIFIED:
-                await self._sla.asignar_version_vigente(request, author_id)
-            await self._session.commit()
+            async with self._session.begin_nested():
+                await self._aplicar_clasificacion(request, author_id, conservar_niveles)
         except Exception as exc:  # noqa: BLE001 — el alta nunca falla por el clasificador
-            await self._session.rollback()
             await self._session.refresh(request)
             log_event(
                 logger,
@@ -147,6 +143,36 @@ class SolicitudService:
                 detalle=str(exc),
             )
         return request
+
+    async def _aplicar_clasificacion(
+        self, request: Request, author_id: uuid.UUID, conservar_niveles: bool
+    ) -> None:
+        resultado = await self._clasificacion.clasificar(request, confirmar=False)
+        estatus = decidir_estatus(resultado)
+        request.classification_confidence = float(resultado.confidence)
+        if estatus == RequestStatus.CLASSIFIED:
+            if resultado.category_id is not None:
+                request.category_id = resultado.category_id
+            if not conservar_niveles or request.urgency is None:
+                request.urgency = resultado.urgency
+            if not conservar_niveles or request.impact is None:
+                request.impact = resultado.impact
+            self._prioridad.aplicar(request)
+        self._session.add(
+            RequestLog(
+                request_id=request.id,
+                author_id=author_id,
+                previous_status=request.status,
+                new_status=estatus,
+                action=ACCION_CLASIFICACION,
+                notes=_nota_clasificacion(
+                    float(resultado.confidence), await self._version(resultado), estatus
+                ),
+            )
+        )
+        request.status = estatus
+        if estatus == RequestStatus.CLASSIFIED:
+            await self._sla.asignar_version_vigente(request, author_id)
 
     async def _version(self, resultado: ClassificationResult) -> str:
         """Versión del modelo del resultado; `session.get` la toma del mapa de identidad."""
@@ -197,7 +223,10 @@ class SolicitudService:
                 note = await self._unverified_note(payload.requester_institutional_id)
                 log.notes = f"{log.notes} {note}"
             request.logs.append(log)
-        return await self._repository.add(request)
+        # Sin confirmar: el alta se confirma completa, con su clasificación y su aviso.
+        self._session.add(request)
+        await self._session.flush()
+        return request
 
     async def _find_requester(self, payload: RequestCreate) -> User | None:
         """Return the requester's account, or None when they cannot be located yet.
