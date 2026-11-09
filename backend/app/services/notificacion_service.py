@@ -14,7 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.logging import get_logger, log_event
-from app.domain.eventos import EventoAviso
+from app.domain import eventos
+from app.domain.eventos import ROL_JEFES, EventoAviso
 from app.models.enums import (
     NotificationChannel,
     NotificationImportance,
@@ -24,7 +25,7 @@ from app.models.enums import (
 from app.models.notification import Notification
 from app.models.request import Request
 from app.repositories.notificacion_repository import NotificacionRepository
-from app.services.sla_clock_service import fecha_compromiso
+from app.services.sla_clock_service import fecha_compromiso, minutos_efectivos
 from app.services.sla_service import as_utc
 from app.templates.avisos.plantillas import PLANTILLAS_AVISO
 
@@ -63,6 +64,8 @@ EVENTOS_CONOCIDOS: frozenset[str] = frozenset(_PLANTILLAS_RESPALDO)
 
 _ASUNTO_MAX = 240  # longitud de `notifications.subject`
 
+SIN_TECNICO_ASIGNADO = "Sin técnico asignado: la solicitud necesita asignarse."
+
 
 class _SafeDict(dict[str, str]):
     """Un campo que falte en el contexto se muestra como «—» en lugar de fallar."""
@@ -81,12 +84,23 @@ def _formatear_fecha(value: datetime | None) -> str:
     return as_utc(value).strftime("%d/%m/%Y %H:%M UTC")
 
 
-def _tecnico_vigente(request: Request) -> str:
+def _asignacion_vigente(request: Request):
     vigentes = [a for a in request.assignments if a.unassigned_at is None]
     if not vigentes:
-        return "Sin asignar"
-    actual = max(vigentes, key=lambda a: as_utc(a.assigned_at))
-    return actual.technician.full_name
+        return None
+    return max(vigentes, key=lambda a: as_utc(a.assigned_at))
+
+
+def _tecnico_vigente(request: Request) -> str:
+    actual = _asignacion_vigente(request)
+    return actual.technician.full_name if actual is not None else "Sin asignar"
+
+
+def _formatear_minutos(minutos: float) -> str:
+    """Duración legible: «2 h 05 min», «45 min»."""
+    total = max(0, int(minutos))
+    horas, resto = divmod(total, 60)
+    return f"{horas} h {resto:02d} min" if horas else f"{resto} min"
 
 
 def _contexto(request: Request, extra: Mapping[str, str] | None = None) -> dict[str, str]:
@@ -120,11 +134,15 @@ class NotificacionService:
         importance: NotificationImportance = NotificationImportance.NORMAL,
         extra: Mapping[str, str] | None = None,
         ahora: datetime | None = None,
+        nota: str | None = None,
+        confirmar: bool = True,
     ) -> list[Notification]:
         """Guarda un aviso por destinatario para un evento de una solicitud.
 
         Los destinatarios repetidos se avisan una sola vez. Si la lista queda vacía no se
         guarda nada. Un código sin plantilla es un error de programación: se rechaza.
+        `nota` se agrega al final del cuerpo. Con `confirmar=False` los avisos quedan en la
+        transacción en curso y el commit lo hace quien orquesta.
         """
         destinatarios = list(dict.fromkeys(recipient_ids))
         if not destinatarios:
@@ -145,6 +163,8 @@ class NotificacionService:
         datos = _SafeDict(_contexto(request, extra))
         asunto = asunto_tpl.format_map(datos)[:_ASUNTO_MAX]
         cuerpo = cuerpo_tpl.format_map(datos)
+        if nota:
+            cuerpo = f"{cuerpo}\n{nota}"
         corte = ahora or _ahora()
 
         avisos = [
@@ -163,6 +183,8 @@ class NotificacionService:
             for destinatario in destinatarios
         ]
         guardados = await self._repository.add_many(avisos)
+        if confirmar:
+            await self._session.commit()
         log_event(
             logger,
             "aviso_emitido",
@@ -172,6 +194,47 @@ class NotificacionService:
             importancia=str(importance),
         )
         return guardados
+
+    async def alerta_riesgo(self, request: Request, ahora: datetime) -> list[Notification]:
+        """Avisa que la solicitud llegó al umbral de riesgo del SLA (S4-09, HU-07.2).
+
+        Reciben el aviso el técnico vigente y los usuarios activos con el rol de jefe de
+        servicio; si no hay técnico, solo los jefes y el cuerpo lo indica. En `extra` van
+        el porcentaje consumido y el tiempo restante. No confirma: el monitor marca la
+        solicitud y confirma todo en una sola transacción.
+        """
+        contexto = await self._repository.get_request_context(request.id)
+        if contexto is None:
+            raise NotFoundError(f"La solicitud {request.id} no existe.")
+
+        asignacion = _asignacion_vigente(contexto)
+        tecnico_id = asignacion.technician_id if asignacion is not None else None
+        jefes = await self._repository.list_active_user_ids_with_role(ROL_JEFES)
+        destinatarios = eventos.destinatarios(EventoAviso.RIESGO_SLA, None, tecnico_id, jefes)
+
+        comprometidos = (
+            contexto.service_level_version.resolution_minutes
+            if contexto.service_level_version is not None
+            else 0
+        )
+        consumidos = minutos_efectivos(contexto, ahora)
+        porcentaje = round(100 * consumidos / comprometidos) if comprometidos else 100
+        restante = _formatear_minutos(comprometidos - consumidos)
+
+        lineas = [f"Tiempo consumido: {porcentaje} % · Tiempo restante: {restante}"]
+        if tecnico_id is None:
+            lineas.append(SIN_TECNICO_ASIGNADO)
+
+        return await self.notificar_evento(
+            EventoAviso.RIESGO_SLA,
+            contexto.id,
+            destinatarios,
+            importance=eventos.importancia(EventoAviso.RIESGO_SLA),
+            extra={"porcentaje_consumido": f"{porcentaje} %", "tiempo_restante": restante},
+            ahora=ahora,
+            nota="\n".join(lineas),
+            confirmar=False,
+        )
 
     # ----------------------------------------------------------------- consulta
 
