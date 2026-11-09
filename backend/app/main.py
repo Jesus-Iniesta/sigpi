@@ -1,3 +1,7 @@
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,10 +18,30 @@ from app.api.usuarios import router as usuarios_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
+from app.db.session import SessionLocal
+from app.services.sla_monitor_service import ejecutar_monitor
 
 configure_logging(settings.log_level)
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Arranca el monitor del SLA (S4-08) si está habilitado y lo detiene al apagar."""
+    tarea = None
+    if settings.sla_monitor_enabled:
+        tarea = asyncio.create_task(
+            ejecutar_monitor(SessionLocal, settings.sla_monitor_interval_seconds)
+        )
+    try:
+        yield
+    finally:
+        if tarea is not None:
+            tarea.cancel()
+            with suppress(asyncio.CancelledError):
+                await tarea
+
+
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
 register_exception_handlers(app)
 app.add_middleware(RequestContextMiddleware) 

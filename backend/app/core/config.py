@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Conjunto de datos del clasificador (S4-12), relativo a la raíz del repositorio.
     classifier_dataset_path: str = "ml/data/dataset_v1.csv"
     sla_warning_threshold: float = 0.80
+    # Monitor del umbral de riesgo del SLA (S4-08). Apagado por defecto (y en pruebas);
+    # actívalo con SLA_MONITOR_ENABLED=true donde se despliegue la aplicación.
+    sla_monitor_enabled: bool = False
+    sla_monitor_interval_seconds: float = 30
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     # Registro de eventos (S3-01): DEBUG, INFO, WARNING o ERROR.
