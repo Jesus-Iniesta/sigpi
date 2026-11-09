@@ -6,9 +6,11 @@ from app.core.security import hash_password
 from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
 from app.models.enums import Priority
 from app.models.identity import Role, User, UserRole
+from app.models.notification import NotificationTemplate
 from app.models.organization import OrganizationalUnit
 from app.seeds.data import (
     CATEGORY_SEEDS,
+    NOTIFICATION_TEMPLATE_SEEDS,
     PRIORITY_SEEDS,
     SERVICE_AREA_SEEDS,
     SHIFT_SEEDS,
@@ -167,6 +169,30 @@ async def run_seed_shifts() -> int:
         return created
 
 
+async def run_seed_notification_templates() -> int:
+    """Carga las plantillas de aviso del catálogo de eventos (S4-04).
+
+    Idempotente: omite los códigos de evento que ya tienen plantilla y no
+    sobrescribe los textos que se hayan editado en la base de datos.
+    """
+    async with _session_factory()() as session:
+        created = 0
+        for event_code, (subject, body) in NOTIFICATION_TEMPLATE_SEEDS.items():
+            template = await session.scalar(
+                select(NotificationTemplate).where(NotificationTemplate.event_code == event_code)
+            )
+            if template is None:
+                session.add(
+                    NotificationTemplate(
+                        event_code=str(event_code), subject_template=subject, body_template=body
+                    )
+                )
+                created += 1
+
+        await session.commit()
+        return created
+
+
 async def run_seed_priorities() -> tuple[Priority, ...]:
     """Return the supported priorities; priorities are persisted as an enum value."""
     return PRIORITY_SEEDS
@@ -225,6 +251,7 @@ async def run_all(area_name: str = "Soporte técnico") -> dict[str, int]:
     shifts = await run_seed_shifts()
     priorities = await run_seed_priorities()
     users = await run_seed_users()
+    notifications = await run_seed_notification_templates()
     return {
         "organizational_units": units,
         "areas": areas,
@@ -234,6 +261,7 @@ async def run_all(area_name: str = "Soporte técnico") -> dict[str, int]:
         "shifts": shifts,
         "priorities": len(priorities),
         "users": users,
+        "notification_templates": notifications,
     }
 
 
