@@ -1,5 +1,6 @@
 from urllib.parse import quote_plus
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +11,8 @@ class Settings(BaseSettings):
     database_name: str = "sigpi"
     database_user: str = ""
     database_password: str = ""
-    classification_confidence_threshold: float = 0.75
+    # RN-06: confianza mínima (de 0 a 1) para aceptar una clasificación sin revisión humana.
+    classification_confidence_threshold: float = Field(default=0.75, ge=0, le=1)
     # Conjunto de datos del clasificador (S4-12), relativo a la raíz del repositorio.
     classifier_dataset_path: str = "ml/data/dataset_v1.csv"
     sla_warning_threshold: float = 0.80
