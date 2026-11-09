@@ -1,19 +1,29 @@
-"""Use cases for registering service requests (HU-01.1, HU-01.3)."""
+"""Use cases for registering service requests (HU-01.1, HU-01.3) and their automatic
+classification at registration time (HU-02.1, S4-13)."""
 
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import get_logger, log_event
 from app.domain.directory import DirectoryClient
 from app.domain.estados import estado_inicial
 from app.models.catalog import Categoria
-from app.models.enums import RequestChannel
+from app.models.classification import ClassificationResult, ModelVersion
+from app.models.enums import RequestChannel, RequestStatus
 from app.models.identity import User
 from app.models.request import Request, RequestLog
+from app.repositories.revision_repository import RevisionRepository
 from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import RequestAssistedCreate, RequestCreate
+from app.services.clasificacion_service import ClasificacionService
 from app.services.prioridad_service import PrioridadInvalidaError, PrioridadService
+from app.services.revision_service import decidir_estatus
+
+logger = get_logger("solicitudes")
+
+ACCION_CLASIFICACION = "Clasificación automática"
 
 _CHANNEL_LABELS = {
     RequestChannel.PHONE: "por teléfono",
@@ -32,14 +42,20 @@ class SolicitudService:
         session: AsyncSession,
         prioridad: PrioridadService | None = None,
         directory: DirectoryClient | None = None,
+        clasificacion: ClasificacionService | None = None,
     ) -> None:
         self._repository = repository
         self._session = session
         self._prioridad = prioridad or PrioridadService()
         self._directory = directory
+        # Sin servicio de clasificación, el alta solo registra (comportamiento previo a S4-13).
+        self._clasificacion = clasificacion
 
-    async def create_request(self, payload: RequestCreate) -> Request:
-        return await self._register(payload)
+    async def create_request(
+        self, payload: RequestCreate, registered_by_id: uuid.UUID | None = None
+    ) -> Request:
+        request = await self._register(payload)
+        return await self._clasificar(request, registered_by_id, conservar_niveles=False)
 
     async def create_assisted_request(
         self, payload: RequestAssistedCreate, registered_by_id: uuid.UUID
@@ -55,7 +71,74 @@ class SolicitudService:
             action=f"Solicitud registrada {_CHANNEL_LABELS[payload.channel]}",
             notes="Registro asistido: el técnico capturó la solicitud en nombre del solicitante.",
         )
-        return await self._register(payload, log)
+        request = await self._register(payload, log)
+        return await self._clasificar(request, registered_by_id, conservar_niveles=True)
+
+    async def ultima_clasificacion(self, request_id: uuid.UUID) -> ClassificationResult | None:
+        """Último resultado de clasificación de la solicitud, con categoría y versión."""
+        resultados = await RevisionRepository(self._session).ultimos_resultados([request_id])
+        return resultados.get(request_id)
+
+    async def _clasificar(
+        self, request: Request, author_id: uuid.UUID | None, *, conservar_niveles: bool
+    ) -> Request:
+        """Clasifica la solicitud recién registrada y decide su estatus (HU-02.1, RN-06).
+
+        * «Clasificada»: aplica categoría, urgencia e impacto y recalcula la prioridad.
+        * «Por revisar»: guarda la confianza, pero no aplica la propuesta hasta la revisión.
+
+        Con `conservar_niveles` (registro asistido) se respetan la urgencia y el impacto que
+        capturó el técnico; el clasificador solo completa los que falten. Si el clasificador
+        falla, la solicitud queda «Registrada» y el alta no falla.
+        """
+        if self._clasificacion is None or request.status != RequestStatus.REGISTERED:
+            return request
+        author_id = author_id or request.requester_id
+        try:
+            resultado = await self._clasificacion.clasificar(request)
+            estatus = decidir_estatus(resultado)
+            request.classification_confidence = float(resultado.confidence)
+            if estatus == RequestStatus.CLASSIFIED:
+                if resultado.category_id is not None:
+                    request.category_id = resultado.category_id
+                if not conservar_niveles or request.urgency is None:
+                    request.urgency = resultado.urgency
+                if not conservar_niveles or request.impact is None:
+                    request.impact = resultado.impact
+                self._prioridad.aplicar(request)
+            self._session.add(
+                RequestLog(
+                    request_id=request.id,
+                    author_id=author_id,
+                    previous_status=request.status,
+                    new_status=estatus,
+                    action=ACCION_CLASIFICACION,
+                    notes=_nota_clasificacion(
+                        float(resultado.confidence), await self._version(resultado), estatus
+                    ),
+                )
+            )
+            request.status = estatus
+            await self._session.commit()
+        except Exception as exc:  # noqa: BLE001 — el alta nunca falla por el clasificador
+            await self._session.rollback()
+            await self._session.refresh(request)
+            log_event(
+                logger,
+                "clasificacion_fallida",
+                level="ERROR",
+                folio=request.folio,
+                error=type(exc).__name__,
+                detalle=str(exc),
+            )
+        return request
+
+    async def _version(self, resultado: ClassificationResult) -> str:
+        """Versión del modelo del resultado; `session.get` la toma del mapa de identidad."""
+        if resultado.model_version_id is None:
+            return "desconocida"
+        model_version = await self._session.get(ModelVersion, resultado.model_version_id)
+        return model_version.version if model_version is not None else "desconocida"
 
     async def _register(self, payload: RequestCreate, log: RequestLog | None = None) -> Request:
         requester = await self._find_requester(payload)
@@ -135,3 +218,11 @@ class SolicitudService:
         else:
             detail = "no aparece en el directorio"
         return f"Solicitante «{institutional_id}» por verificar: {detail}."
+
+
+def _nota_clasificacion(confianza: float, version: str, estatus: RequestStatus) -> str:
+    if estatus == RequestStatus.CLASSIFIED:
+        decision = "se aplicó la clasificación propuesta"
+    else:
+        decision = "la confianza es baja: queda por revisar y no se aplica la categoría"
+    return f"Confianza {confianza:.0%}, modelo {version}: {decision}."

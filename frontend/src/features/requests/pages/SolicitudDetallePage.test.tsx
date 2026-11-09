@@ -56,6 +56,9 @@ function buildRequest(overrides: Partial<RequestDetail> = {}): RequestDetail {
     closed_at: null,
     created_at: '2026-10-17T09:00:00Z',
     updated_at: '2026-10-17T10:00:00Z',
+    proposed_category_id: null,
+    proposed_category_name: null,
+    model_version: null,
     ...overrides,
   }
 }
@@ -184,6 +187,41 @@ describe('SolicitudDetallePage: detalle con bitácora (S3-13, HU-04.1)', () => {
     await screen.findByRole('heading', { name: 'No hay conexión a la red' })
     expect(screen.queryByText('P2')).not.toBeInTheDocument()
     expect(screen.getAllByText('Sin definir')).toHaveLength(2)
+  })
+
+  // --- Clasificación automática (S4-13, HU-02.1 AC2) ------------------------------
+
+  it('muestra la categoría propuesta, la confianza y la versión del modelo', async () => {
+    getRequestDetailMock.mockResolvedValue(
+      buildRequest({
+        status: 'pending_review',
+        proposed_category_id: 'cat-redes',
+        proposed_category_name: 'Redes',
+        classification_confidence: 0.6234,
+        model_version: 'nb-v1',
+      }),
+    )
+    renderPage()
+
+    const clasificacion = await screen.findByRole('region', {
+      name: 'Clasificación automática',
+    })
+    expect(within(clasificacion).getByText('Redes')).toBeInTheDocument()
+    expect(within(clasificacion).getByText('62 %')).toBeInTheDocument()
+    expect(within(clasificacion).getByText('nb-v1')).toBeInTheDocument()
+  })
+
+  it('sin clasificación automática lo indica', async () => {
+    renderPage()
+
+    const clasificacion = await screen.findByRole('region', {
+      name: 'Clasificación automática',
+    })
+    expect(
+      within(clasificacion).getByText(
+        'Esta solicitud todavía no tiene una clasificación automática.',
+      ),
+    ).toBeInTheDocument()
   })
 
   // --- Bitácora ------------------------------------------------------------------

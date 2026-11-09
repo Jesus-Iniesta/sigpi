@@ -37,6 +37,47 @@ function ErrorMessage({ message }: { message: string }) {
   )
 }
 
+function confidenceLabel(confidence: number | null): string {
+  if (confidence === null) return 'Sin dato'
+  return `${Math.round(confidence * 100)} %`
+}
+
+function ClassificationSection({ request }: { request: RequestDetail }) {
+  const classified =
+    request.model_version !== null || request.classification_confidence !== null
+
+  return (
+    <section
+      aria-labelledby="detalle-clasificacion"
+      className="rounded-xl border border-[#dce6e4] bg-white p-6"
+    >
+      <h2 id="detalle-clasificacion" className="text-lg font-bold">
+        Clasificación automática
+      </h2>
+      {classified ? (
+        <dl className="mt-4 grid gap-5 sm:grid-cols-3">
+          <Field
+            label="Categoría propuesta"
+            value={request.proposed_category_name ?? 'Sin categoría'}
+          />
+          <Field
+            label="Confianza"
+            value={confidenceLabel(request.classification_confidence)}
+          />
+          <Field
+            label="Versión del modelo"
+            value={request.model_version ?? 'Sin dato'}
+          />
+        </dl>
+      ) : (
+        <p className="mt-3 text-sm text-[#718096]">
+          Esta solicitud todavía no tiene una clasificación automática.
+        </p>
+      )}
+    </section>
+  )
+}
+
 function requesterLabel(request: RequestDetail): string {
   if (request.requester_institutional_id) {
     return request.requester_institutional_id
@@ -196,6 +237,8 @@ export function SolicitudDetallePage() {
           />
         </dl>
       </section>
+
+      <ClassificationSection request={request} />
 
       <section
         aria-labelledby="detalle-atencion"
