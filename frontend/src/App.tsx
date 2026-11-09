@@ -7,6 +7,8 @@ import { RevisionPage } from '@/features/clasificacion/pages/RevisionPage'
 import { RegistroAsistidoPage } from '@/features/requests/registro-asistido-page'
 import { RequestsPage } from '@/features/requests/requests-page'
 import { SolicitudDetallePage } from '@/features/requests/pages/SolicitudDetallePage'
+import { MiSolicitudPage } from '@/features/solicitudes/pages/MiSolicitudPage'
+import { MisSolicitudesPage } from '@/features/solicitudes/pages/MisSolicitudesPage'
 import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
 import { AppLayout } from '@/routes/app-layout'
@@ -19,6 +21,8 @@ const reviewRoles = [
   'classifier',
   'support_agent',
 ]
+// Único rol con el permiso requests.view_own (S4-01).
+const requesterRoles = ['requester']
 
 function App() {
   return (
@@ -37,6 +41,13 @@ function App() {
           </Route>
           <Route element={<RequireAuth requiredRoles={reviewRoles} />}>
             <Route path="clasificacion/revision" element={<RevisionPage />} />
+          </Route>
+          <Route element={<RequireAuth requiredRoles={requesterRoles} />}>
+            <Route path="mis-solicitudes" element={<MisSolicitudesPage />} />
+            <Route
+              path="mis-solicitudes/:folio"
+              element={<MiSolicitudPage />}
+            />
           </Route>
           <Route path="catalogo" element={<CatalogPage />} />
           <Route path="sla" element={<SlaPage />} />
