@@ -73,6 +73,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.REQUESTS_RESOLVE,
             Permission.REQUESTS_CLOSE,
             Permission.CLASSIFICATION_READ,
+            Permission.CLASSIFICATION_REVIEW,
             Permission.KNOWLEDGE_READ,
             Permission.INVENTORY_READ,
             Permission.MAINTENANCE_READ,
