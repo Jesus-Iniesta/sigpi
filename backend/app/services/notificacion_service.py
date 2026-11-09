@@ -8,7 +8,7 @@ del alcance del proyecto escolar, ver HU-07.3).
 
 import uuid
 from collections.abc import Iterable, Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +23,7 @@ from app.models.enums import (
 from app.models.notification import Notification
 from app.models.request import Request
 from app.repositories.notificacion_repository import NotificacionRepository
-from app.services.sla_clock_service import minutos_suspendidos
+from app.services.sla_clock_service import fecha_compromiso
 from app.services.sla_service import as_utc
 
 logger = get_logger("notificaciones")
@@ -133,15 +133,6 @@ def _formatear_fecha(value: datetime | None) -> str:
     if value is None:
         return SIN_DATO
     return as_utc(value).strftime("%d/%m/%Y %H:%M UTC")
-
-
-def fecha_compromiso(request: Request) -> datetime | None:
-    """Alta + tiempo de resolución del SLA + esperas; `None` si no tiene SLA asignado."""
-    version = request.service_level_version
-    if version is None:
-        return None
-    minutos = version.resolution_minutes + minutos_suspendidos(request)
-    return as_utc(request.created_at) + timedelta(minutes=minutos)
 
 
 def _tecnico_vigente(request: Request) -> str:
