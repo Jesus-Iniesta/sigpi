@@ -38,6 +38,7 @@ from app.models.identity import User
 from app.models.organization import OrganizationalUnit
 from app.models.request import Request, RequestLog
 from app.services.clasificacion_service import ClasificacionService
+from app.services.sla_service import ACCION_SIN_ACUERDO
 from app.services.solicitud_service import ACCION_CLASIFICACION
 
 TEXTO_CLARO = {
@@ -242,7 +243,8 @@ def test_la_clasificacion_se_confirma_y_deja_entrada_en_la_bitacora(cliente):
     assert request.status == RequestStatus.CLASSIFIED
     assert request.priority is not None
     assert len(resultados) == 1
-    assert [log.action for log in logs] == [ACCION_CLASIFICACION]
+    # Este entorno no tiene acuerdo de nivel de servicio: la bitácora lo registra (S4-13).
+    assert [log.action for log in logs] == [ACCION_CLASIFICACION, ACCION_SIN_ACUERDO]
     entrada = logs[0]
     assert entrada.author_id == cliente.ids["solicitante"]
     assert entrada.previous_status == RequestStatus.REGISTERED
@@ -344,6 +346,7 @@ def test_el_registro_asistido_conserva_la_urgencia_y_el_impacto_del_tecnico(clie
     assert [log.action for log in logs] == [
         "Solicitud registrada por teléfono",
         ACCION_CLASIFICACION,
+        ACCION_SIN_ACUERDO,
     ]
     assert logs[1].author_id == cliente.ids["tecnico"]
 

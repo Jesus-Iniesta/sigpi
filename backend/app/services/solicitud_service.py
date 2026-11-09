@@ -1,5 +1,8 @@
 """Use cases for registering service requests (HU-01.1, HU-01.3) and their automatic
-classification at registration time (HU-02.1, S4-13)."""
+classification at registration time (HU-02.1, S4-13).
+
+Al fijar la prioridad se asigna la versión vigente del acuerdo de nivel de servicio; el
+resultado, el estatus y la versión se confirman en una sola transacción (regla 7)."""
 
 import uuid
 
@@ -14,12 +17,16 @@ from app.models.classification import ClassificationResult, ModelVersion
 from app.models.enums import RequestChannel, RequestStatus
 from app.models.identity import User
 from app.models.request import Request, RequestLog
+from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.revision_repository import RevisionRepository
+from app.repositories.sla_repository import SlaRepository
 from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import RequestAssistedCreate, RequestCreate
+from app.services.auditoria_service import AuditoriaService
 from app.services.clasificacion_service import ClasificacionService
 from app.services.prioridad_service import PrioridadInvalidaError, PrioridadService
 from app.services.revision_service import decidir_estatus
+from app.services.sla_service import SlaService
 
 logger = get_logger("solicitudes")
 
@@ -43,6 +50,7 @@ class SolicitudService:
         prioridad: PrioridadService | None = None,
         directory: DirectoryClient | None = None,
         clasificacion: ClasificacionService | None = None,
+        sla: SlaService | None = None,
     ) -> None:
         self._repository = repository
         self._session = session
@@ -50,6 +58,9 @@ class SolicitudService:
         self._directory = directory
         # Sin servicio de clasificación, el alta solo registra (comportamiento previo a S4-13).
         self._clasificacion = clasificacion
+        self._sla = sla or SlaService(
+            SlaRepository(session), AuditoriaService(AuditoriaRepository(session))
+        )
 
     async def create_request(
         self, payload: RequestCreate, registered_by_id: uuid.UUID | None = None
@@ -84,18 +95,20 @@ class SolicitudService:
     ) -> Request:
         """Clasifica la solicitud recién registrada y decide su estatus (HU-02.1, RN-06).
 
-        * «Clasificada»: aplica categoría, urgencia e impacto y recalcula la prioridad.
+        * «Clasificada»: aplica categoría, urgencia e impacto, recalcula la prioridad y
+          asigna la versión vigente del acuerdo de nivel de servicio.
         * «Por revisar»: guarda la confianza, pero no aplica la propuesta hasta la revisión.
 
         Con `conservar_niveles` (registro asistido) se respetan la urgencia y el impacto que
         capturó el técnico; el clasificador solo completa los que falten. Si el clasificador
-        falla, la solicitud queda «Registrada» y el alta no falla.
+        falla, la solicitud queda «Registrada» y el alta no falla. El resultado, el estatus
+        y la versión se confirman juntos: si algo falla, no queda ninguno.
         """
         if self._clasificacion is None or request.status != RequestStatus.REGISTERED:
             return request
         author_id = author_id or request.requester_id
         try:
-            resultado = await self._clasificacion.clasificar(request)
+            resultado = await self._clasificacion.clasificar(request, confirmar=False)
             estatus = decidir_estatus(resultado)
             request.classification_confidence = float(resultado.confidence)
             if estatus == RequestStatus.CLASSIFIED:
@@ -119,6 +132,8 @@ class SolicitudService:
                 )
             )
             request.status = estatus
+            if estatus == RequestStatus.CLASSIFIED:
+                await self._sla.asignar_version_vigente(request, author_id)
             await self._session.commit()
         except Exception as exc:  # noqa: BLE001 — el alta nunca falla por el clasificador
             await self._session.rollback()

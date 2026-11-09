@@ -8,6 +8,7 @@ la interfaz queda fuera del Sprint 4.
 La corrección de una clasificación (S4-16, HU-02.2 AC2) aplica las etiquetas de la
 persona revisora, recalcula la prioridad (RN-05), deja la solicitud «Clasificada» y
 guarda la corrección como ejemplo para reentrenar el modelo, todo en una transacción.
+Con la prioridad nueva se asigna la versión vigente del acuerdo de nivel de servicio.
 """
 
 import uuid
@@ -25,13 +26,22 @@ from app.models.request import RequestLog
 from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.correccion_repository import CorreccionRepository
 from app.repositories.revision_repository import RevisionRepository
+from app.repositories.sla_repository import SlaRepository
 from app.schemas.revision import RevisionInput, RevisionItem, RevisionResult
 from app.services.auditoria_service import AuditoriaService
 from app.services.prioridad_service import PrioridadService
+from app.services.sla_service import SlaService
 
 ACCION_CORREGIDA = "clasificacion.corregida"
 ENTIDAD_SOLICITUD = "service_request"
-_CAMPOS_AUDITADOS = ("status", "category_id", "urgency", "impact", "priority")
+_CAMPOS_AUDITADOS = (
+    "status",
+    "category_id",
+    "urgency",
+    "impact",
+    "priority",
+    "service_level_version_id",
+)
 
 
 class _ConConfianza(Protocol):
@@ -53,6 +63,7 @@ class RevisionService:
         self._correcciones = CorreccionRepository(session)
         self._auditoria = AuditoriaService(AuditoriaRepository(session))
         self._prioridad = PrioridadService()
+        self._sla = SlaService(SlaRepository(session), self._auditoria)
 
     async def cola(self) -> list[RevisionItem]:
         """Solicitudes «Por revisar» con su último resultado, de la más antigua a la más
@@ -117,6 +128,7 @@ class RevisionService:
                 notes=datos.justification,
             )
         )
+        await self._sla.asignar_version_vigente(solicitud, contexto.actor_id)
         despues = {campo: getattr(solicitud, campo) for campo in _CAMPOS_AUDITADOS}
         await self._auditoria.registrar(
             contexto,

@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.catalog import Categoria
+from app.models.request import RequestLog
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 
 
@@ -100,6 +101,13 @@ class SlaRepository:
             .order_by(ServiceLevelVersion.valid_from.desc())
         )
         return result.first()
+
+    async def get_version(self, version_id: uuid.UUID) -> ServiceLevelVersion | None:
+        return await self._session.get(ServiceLevelVersion, version_id)
+
+    async def add_log(self, log: RequestLog) -> None:
+        """Agrega una entrada de bitácora a la transacción en curso, sin confirmar."""
+        self._session.add(log)
 
     async def save_versions(self, versions: list[ServiceLevelVersion]) -> list[ServiceLevelVersion]:
         """Agrega las versiones nuevas y los cierres pendientes a la transacción en curso."""

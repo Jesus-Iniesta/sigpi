@@ -307,7 +307,10 @@ def test_deja_entrada_en_la_bitacora_y_registro_de_auditoria(entorno) -> None:
 
     (log,) = entorno.consultar(
         lambda s: s.scalars(
-            select(RequestLog).where(RequestLog.request_id == entorno.ids["pendiente"])
+            select(RequestLog).where(
+                RequestLog.request_id == entorno.ids["pendiente"],
+                RequestLog.action == "Clasificación corregida",
+            )
         )
     )
     assert log.author_id == entorno.ids["revisora"]
