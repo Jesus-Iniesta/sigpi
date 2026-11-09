@@ -7,6 +7,7 @@ from app.seeds.service import (
     run_all,
     run_seed_area,
     run_seed_categories,
+    run_seed_notification_templates,
     run_seed_organizational_units,
     run_seed_priorities,
     run_seed_users,
@@ -64,6 +65,12 @@ def priorities():
 def users():
     n = run_async(run_seed_users())
     typer.echo(f"Users seed completed ({n} created).")
+
+
+@app.command("notifications")
+def notifications():
+    n = run_async(run_seed_notification_templates())
+    typer.echo(f"Notification templates seed completed ({n} created).")
 
 
 if __name__ == "__main__":
