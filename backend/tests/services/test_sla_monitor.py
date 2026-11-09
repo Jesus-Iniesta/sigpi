@@ -7,15 +7,18 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 import app.main as main_module
 import app.models  # noqa: F401
 from app.core.config import Settings, settings
+from app.core.permissions import RoleName
 from app.db.base import Base
 from app.models.enums import Priority, RequestChannel, RequestStatus, UserType
-from app.models.identity import User
+from app.models.identity import Role, User, UserRole
+from app.models.notification import Notification
 from app.models.request import Request, RequestSlaPause
 from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 from app.services.sla_monitor_service import (
@@ -346,3 +349,268 @@ def test_la_configuracion_por_defecto_deja_el_monitor_apagado() -> None:
 
     assert campos["sla_monitor_enabled"].default is False
     assert campos["sla_monitor_interval_seconds"].default == 30
+
+
+# --- umbral de alerta con reloj controlado (S4-10) -----------------------------
+#
+# Las vueltas del monitor se simulan llamando a `ejecutar_vuelta(ahora)` cada
+# `settings.sla_monitor_interval_seconds`, sin `sleep`: el reloj lo fija la prueba.
+# Las vueltas arrancan desfasadas del alta para que el cruce del 80 % caiga entre dos.
+
+# Tiempos de resolución supuestos por prioridad (el sprint no fija un catálogo real).
+RESOLUCION_POR_PRIORIDAD = {
+    Priority.P1: 240,
+    Priority.P2: 480,
+    Priority.P3: 1440,
+    Priority.P4: 2880,
+}
+DESFASE = timedelta(seconds=7)
+MAXIMO_RETRASO = timedelta(seconds=60)
+SEGUNDO = timedelta(seconds=1)
+
+
+def _intervalo() -> timedelta:
+    return timedelta(seconds=settings.sla_monitor_interval_seconds)
+
+
+def _cruce(resolucion: int, pausa: timedelta = timedelta()) -> datetime:
+    """Instante exacto en que el tiempo efectivo llega al umbral de riesgo."""
+    return INICIO + timedelta(minutes=settings.sla_warning_threshold * resolucion) + pausa
+
+
+@pytest.fixture
+def monitor():
+    """Solicitante, un jefe de servicio activo y una versión de acuerdo por prioridad."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    ids = {"requester": uuid.uuid4(), "jefe": uuid.uuid4()}
+    versiones = {prioridad: uuid.uuid4() for prioridad in RESOLUCION_POR_PRIORIDAD}
+
+    async def preparar() -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async with maker() as session:
+            for clave in ("requester", "jefe"):
+                session.add(
+                    User(
+                        id=ids[clave],
+                        institutional_id=f"u-{ids[clave].hex[:8]}",
+                        full_name=clave.title(),
+                        email=f"{clave}@example.test",
+                        user_type=UserType.ADMINISTRATIVE,
+                        is_active=True,
+                    )
+                )
+            rol = Role(name=RoleName.SERVICE_MANAGER)
+            session.add(rol)
+            acuerdo = ServiceLevelAgreement(name="Acuerdo general", is_default=True)
+            session.add(acuerdo)
+            await session.flush()
+            session.add(UserRole(user_id=ids["jefe"], role_id=rol.id))
+            for prioridad, resolucion in RESOLUCION_POR_PRIORIDAD.items():
+                session.add(
+                    ServiceLevelVersion(
+                        id=versiones[prioridad],
+                        agreement_id=acuerdo.id,
+                        version=1,
+                        priority=prioridad,
+                        first_response_minutes=30,
+                        resolution_minutes=resolucion,
+                        valid_from=INICIO - timedelta(days=30),
+                    )
+                )
+            await session.commit()
+
+    asyncio.run(preparar())
+    try:
+        yield maker, ids, versiones
+    finally:
+        asyncio.run(engine.dispose())
+
+
+def _crear_con_prioridad(
+    maker,
+    ids,
+    versiones,
+    prioridad: Priority,
+    *,
+    pausa: tuple[datetime, datetime] | None = None,
+) -> uuid.UUID:
+    async def crear() -> uuid.UUID:
+        async with maker() as session:
+            request = Request(
+                requester_id=ids["requester"],
+                folio=f"SIG-{uuid.uuid4().hex[:6]}",
+                title="Sin red",
+                description="Sin red",
+                physical_location="Aula 1",
+                channel=RequestChannel.PORTAL,
+                status=RequestStatus.IN_PROGRESS,
+                priority=prioridad,
+                service_level_version_id=versiones[prioridad],
+                created_at=INICIO,
+            )
+            if pausa is not None:
+                request.sla_pauses.append(
+                    RequestSlaPause(
+                        reason="external_input",
+                        started_by_id=ids["requester"],
+                        started_at=pausa[0],
+                        ended_at=pausa[1],
+                    )
+                )
+            session.add(request)
+            await session.commit()
+            return request.id
+
+    return asyncio.run(crear())
+
+
+def _vuelta(maker, ahora: datetime) -> list[uuid.UUID]:
+    """Una vuelta real del monitor (marca, emite el aviso y confirma) en el instante dado."""
+
+    async def correr() -> list[uuid.UUID]:
+        async with maker() as session:
+            return [r.id for r in await SlaMonitorService(session).ejecutar_vuelta(ahora)]
+
+    return asyncio.run(correr())
+
+
+def _vueltas_alrededor(cruce: datetime, antes: int = 3, despues: int = 3) -> list[datetime]:
+    """Instantes de las vueltas del monitor cercanas a `cruce`, desfasadas del alta."""
+    intervalo = _intervalo()
+    previas = (cruce - INICIO - DESFASE) // intervalo
+    primera = INICIO + DESFASE + (previas - antes + 1) * intervalo
+    return [primera + k * intervalo for k in range(antes + despues)]
+
+
+def _simular(maker, request_id: uuid.UUID, instantes: list[datetime]) -> datetime | None:
+    """Corre las vueltas en orden y devuelve el instante de la que alertó la solicitud."""
+    alertada = None
+    for ahora in instantes:
+        if request_id in _vuelta(maker, ahora):
+            assert alertada is None, "la solicitud se alertó en más de una vuelta"
+            alertada = ahora
+    return alertada
+
+
+def _avisos(maker, request_id: uuid.UUID) -> int:
+    async def contar() -> int:
+        async with maker() as session:
+            return await session.scalar(
+                select(func.count())
+                .select_from(Notification)
+                .where(Notification.request_id == request_id)
+            )
+
+    return asyncio.run(contar())
+
+
+def _resolver(maker, request_id: uuid.UUID) -> None:
+    async def resolver() -> None:
+        async with maker() as session:
+            request = await session.get(Request, request_id)
+            request.status = RequestStatus.RESOLVED
+            await session.commit()
+
+    asyncio.run(resolver())
+
+
+@pytest.mark.parametrize("prioridad", list(RESOLUCION_POR_PRIORIDAD))
+def test_la_alerta_no_sale_antes_del_80_por_ciento(monitor, prioridad) -> None:
+    maker, ids, versiones = monitor
+    request_id = _crear_con_prioridad(maker, ids, versiones, prioridad)
+    cruce = _cruce(RESOLUCION_POR_PRIORIDAD[prioridad])
+
+    assert _vuelta(maker, cruce - SEGUNDO) == []
+    assert _alertada_en(maker, request_id) is None
+    assert _avisos(maker, request_id) == 0
+
+
+@pytest.mark.parametrize("prioridad", list(RESOLUCION_POR_PRIORIDAD))
+def test_la_alerta_sale_en_la_primera_vuelta_tras_el_cruce(monitor, prioridad) -> None:
+    maker, ids, versiones = monitor
+    request_id = _crear_con_prioridad(maker, ids, versiones, prioridad)
+    cruce = _cruce(RESOLUCION_POR_PRIORIDAD[prioridad])
+    instantes = _vueltas_alrededor(cruce)
+    primera_tras_cruce = next(t for t in instantes if t >= cruce)
+
+    alertada = _simular(maker, request_id, instantes)
+
+    assert alertada == primera_tras_cruce
+    assert timedelta() <= alertada - cruce <= MAXIMO_RETRASO
+    assert alertada - cruce < _intervalo()
+    assert _alertada_en(maker, request_id).replace(tzinfo=UTC) == alertada
+    assert _avisos(maker, request_id) == 1
+
+
+def test_una_pausa_desplaza_el_umbral_exactamente_lo_que_duro(monitor) -> None:
+    maker, ids, versiones = monitor
+    resolucion = RESOLUCION_POR_PRIORIDAD[Priority.P2]
+    pausa = timedelta(minutes=17, seconds=23)
+    inicio_pausa = _min(60)
+    sin_pausa = _crear_con_prioridad(maker, ids, versiones, Priority.P2)
+    con_pausa = _crear_con_prioridad(
+        maker, ids, versiones, Priority.P2, pausa=(inicio_pausa, inicio_pausa + pausa)
+    )
+    cruce = _cruce(resolucion)
+
+    assert _detectar(maker, cruce - SEGUNDO) == []
+    assert _detectar(maker, cruce) == [sin_pausa]
+    assert _detectar(maker, cruce + pausa - SEGUNDO) == [sin_pausa]
+    assert _detectar(maker, cruce + pausa) == [sin_pausa, con_pausa]
+
+
+def test_una_pausa_retrasa_la_alerta_del_monitor_lo_que_duro(monitor) -> None:
+    maker, ids, versiones = monitor
+    resolucion = RESOLUCION_POR_PRIORIDAD[Priority.P3]
+    # Una pausa de 25 intervalos: las vueltas caen en el mismo punto del ciclo.
+    pausa = 25 * _intervalo()
+    inicio_pausa = _min(120)
+    sin_pausa = _crear_con_prioridad(maker, ids, versiones, Priority.P3)
+    con_pausa = _crear_con_prioridad(
+        maker, ids, versiones, Priority.P3, pausa=(inicio_pausa, inicio_pausa + pausa)
+    )
+
+    alerta_sin = _simular(maker, sin_pausa, _vueltas_alrededor(_cruce(resolucion)))
+    alerta_con = _simular(maker, con_pausa, _vueltas_alrededor(_cruce(resolucion, pausa)))
+
+    assert alerta_sin is not None and alerta_con is not None
+    assert alerta_con - alerta_sin == pausa
+
+
+def test_una_solicitud_resuelta_antes_del_80_por_ciento_nunca_se_alerta(monitor) -> None:
+    maker, ids, versiones = monitor
+    resolucion = RESOLUCION_POR_PRIORIDAD[Priority.P1]
+    request_id = _crear_con_prioridad(maker, ids, versiones, Priority.P1)
+    cruce = _cruce(resolucion)
+
+    assert _vuelta(maker, cruce - timedelta(minutes=10)) == []
+    _resolver(maker, request_id)
+
+    for ahora in _vueltas_alrededor(cruce) + [INICIO + timedelta(minutes=10 * resolucion)]:
+        assert _vuelta(maker, ahora) == []
+    assert _alertada_en(maker, request_id) is None
+    assert _avisos(maker, request_id) == 0
+
+
+def test_dos_vueltas_seguidas_no_duplican_la_alerta(monitor) -> None:
+    maker, ids, versiones = monitor
+    request_id = _crear_con_prioridad(maker, ids, versiones, Priority.P2)
+    primera = _cruce(RESOLUCION_POR_PRIORIDAD[Priority.P2]) + SEGUNDO
+
+    assert _vuelta(maker, primera) == [request_id]
+    assert _vuelta(maker, primera + _intervalo()) == []
+
+    assert _alertada_en(maker, request_id).replace(tzinfo=UTC) == primera
+    assert _avisos(maker, request_id) == 1
+
+
+def test_el_intervalo_por_defecto_es_de_a_lo_mas_30_segundos() -> None:
+    intervalo = Settings.model_fields["sla_monitor_interval_seconds"].default
+
+    assert 0 < intervalo <= 30
