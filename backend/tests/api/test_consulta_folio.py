@@ -1,11 +1,15 @@
-"""Pruebas de la consulta de una solicitud y del cierre por confirmación (S4-03, HU-04.3).
+"""Pruebas de la consulta por folio y del cierre por confirmación (S4-03, HU-04.3).
 
-Cubren el criterio «cierre por confirmación»: una solicitud resuelta pasa a «Cerrada»
-cuando se confirma la solución, queda constancia en la bitácora y cualquier otro
-estado o identificador se rechaza sin modificar la solicitud.
+`test_mis_solicitudes.py` (S4-01) ya cubre el camino principal de `/mis-solicitudes`:
+lista propia, detalle con bitácora sin notas internas, folio ajeno o inexistente (404),
+confirmar una solicitud resuelta, 401 y 403. Aquí van los casos que esa prueba no cubre:
 
-La consulta por folio (`GET /solicitudes/{folio}`) la expone S4-01. Sus pruebas se
-agregan en la sección final cuando ese endpoint esté integrado en `main`.
+- La nota de la confirmación queda en la bitácora y no se devuelve a quien consulta.
+- Confirmar dos veces, o en cualquier estado distinto de «Resuelta», no cambia nada.
+- Los límites de las notas (vacías, de más de 500 caracteres, campos desconocidos).
+- Lo que se ve después de cerrar, la solicitud sin acuerdo de servicio y la propiedad del
+  folio vista desde la otra persona y desde el administrador.
+- El flujo completo: el técnico resuelve, la persona consulta y confirma.
 """
 
 import asyncio
@@ -14,6 +18,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -24,21 +29,13 @@ from app.db.session import get_session
 from app.main import app as fastapi_app
 from app.models.enums import RequestChannel, RequestStatus, UserType
 from app.models.identity import User
-from app.models.request import Request
+from app.models.request import Request, RequestLog
+
+NOTA = "La red ya funciona, gracias."
+OTROS_ESTADOS = [estado for estado in RequestStatus if estado != RequestStatus.RESOLVED]
 
 
-def _user(user_id: uuid.UUID, institutional_id: str) -> User:
-    return User(
-        id=user_id,
-        institutional_id=institutional_id,
-        full_name=f"Usuario {institutional_id}",
-        email=f"{institutional_id}@example.test",
-        user_type=UserType.ACADEMIC,
-        is_active=True,
-    )
-
-
-def _como(user_id: uuid.UUID, role: str) -> SimpleNamespace:
+def _como(user_id: uuid.UUID, role: str = "requester") -> SimpleNamespace:
     return SimpleNamespace(
         id=user_id,
         is_active=True,
@@ -48,21 +45,29 @@ def _como(user_id: uuid.UUID, role: str) -> SimpleNamespace:
 
 @pytest.fixture
 def entorno():
+    """Base SQLite con cuatro personas: dos solicitantes, un técnico y un administrador."""
     engine = create_async_engine(
         "sqlite+aiosqlite://",
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    ids = {"tecnico": uuid.uuid4(), "solicitante": uuid.uuid4()}
+    ids = {nombre: uuid.uuid4() for nombre in ("solicitante", "otra", "tecnico", "admin")}
 
     async def preparar() -> None:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         async with maker() as session:
-            session.add_all(
-                [_user(ids["tecnico"], "tec-001"), _user(ids["solicitante"], "sol-001")]
-            )
+            for nombre, user_id in ids.items():
+                session.add(
+                    User(
+                        id=user_id,
+                        institutional_id=f"u-{user_id.hex[:8]}",
+                        full_name=f"Persona {nombre}",
+                        email=f"{nombre}@example.test",
+                        user_type=UserType.ACADEMIC,
+                    )
+                )
             await session.commit()
 
     asyncio.run(preparar())
@@ -74,6 +79,7 @@ def entorno():
 
 @pytest.fixture
 def cliente(entorno):
+    """Cliente que actúa como la persona solicitante; `_actuar_como` cambia de persona."""
     maker, ids = entorno
 
     async def sesion():
@@ -81,28 +87,34 @@ def cliente(entorno):
             yield session
 
     fastapi_app.dependency_overrides[get_session] = sesion
-    fastapi_app.dependency_overrides[get_current_user] = lambda: _como(
-        ids["tecnico"], "support_agent"
-    )
+    _actuar_como(ids["solicitante"])
     try:
         yield TestClient(fastapi_app), maker, ids
     finally:
         fastapi_app.dependency_overrides.clear()
 
 
-def _crear_solicitud(maker, ids, status: RequestStatus) -> uuid.UUID:
+def _actuar_como(user_id: uuid.UUID, role: str = "requester") -> None:
+    fastapi_app.dependency_overrides[get_current_user] = lambda: _como(user_id, role)
+
+
+def _crear(
+    maker,
+    ids,
+    folio: str,
+    status: RequestStatus = RequestStatus.RESOLVED,
+    dueno: str = "solicitante",
+) -> uuid.UUID:
     async def crear() -> uuid.UUID:
         async with maker() as session:
             request = Request(
-                requester_id=ids["solicitante"],
-                folio="SIG-0001",
-                title="No hay conexión a la red",
-                description="El laboratorio perdió conectividad.",
-                physical_location="Edificio A, laboratorio 2",
+                requester_id=ids[dueno],
+                folio=folio,
+                title=f"Solicitud {folio}",
+                description="No hay red en el laboratorio.",
+                physical_location="Edificio B",
                 channel=RequestChannel.PORTAL,
                 status=status,
-                urgency=2,
-                impact=2,
             )
             session.add(request)
             await session.commit()
@@ -111,96 +123,182 @@ def _crear_solicitud(maker, ids, status: RequestStatus) -> uuid.UUID:
     return asyncio.run(crear())
 
 
+def _leer(maker, folio: str) -> Request:
+    """Lee la solicitud con una sesión nueva: solo ve lo que quedó confirmado en la base."""
+
+    async def leer() -> Request:
+        async with maker() as session:
+            return (await session.scalars(select(Request).where(Request.folio == folio))).one()
+
+    return asyncio.run(leer())
+
+
+def _bitacora(maker, folio: str) -> list[RequestLog]:
+    async def leer() -> list[RequestLog]:
+        async with maker() as session:
+            consulta = (
+                select(RequestLog)
+                .join(Request, RequestLog.request_id == Request.id)
+                .where(Request.folio == folio)
+                .order_by(RequestLog.created_at)
+            )
+            return list((await session.scalars(consulta)).all())
+
+    return asyncio.run(leer())
+
+
 # --- Cierre por confirmación ---------------------------------------------------------
 
 
-def test_confirmar_una_solicitud_resuelta_la_cierra(cliente) -> None:
+def test_la_nota_de_la_confirmacion_queda_en_la_bitacora_y_no_se_devuelve(cliente) -> None:
     client, maker, ids = cliente
-    request_id = _crear_solicitud(maker, ids, RequestStatus.RESOLVED)
+    _crear(maker, ids, "SIG-0001")
 
-    respuesta = client.post(f"/solicitudes/{request_id}/confirmar", json={})
+    respuesta = client.post("/mis-solicitudes/SIG-0001/confirmar", json={"notes": NOTA})
 
     assert respuesta.status_code == 200, respuesta.text
-    datos = respuesta.json()
-    assert datos["status"] == "closed"
-    assert datos["closed_at"] is not None
+    assert NOTA not in respuesta.text
+    (entrada,) = _bitacora(maker, "SIG-0001")
+    assert entrada.action == "Solicitud confirmada"
+    assert entrada.notes == NOTA
+    assert entrada.previous_status == RequestStatus.RESOLVED
+    assert entrada.new_status == RequestStatus.CLOSED
+    assert entrada.author_id == ids["solicitante"]
 
 
-def test_confirmar_deja_constancia_en_la_bitacora(cliente) -> None:
+def test_confirmar_dos_veces_responde_422_y_no_duplica_la_bitacora(cliente) -> None:
     client, maker, ids = cliente
-    request_id = _crear_solicitud(maker, ids, RequestStatus.RESOLVED)
+    _crear(maker, ids, "SIG-0001")
 
-    client.post(
-        f"/solicitudes/{request_id}/confirmar",
-        json={"notes": "El usuario confirma que ya funciona"},
-    )
-    entradas = client.get(f"/solicitudes/{request_id}/bitacora").json()
+    primera = client.post("/mis-solicitudes/SIG-0001/confirmar", json={})
+    segunda = client.post("/mis-solicitudes/SIG-0001/confirmar", json={})
 
-    ultima = entradas[-1]
-    assert ultima["action"] == "Solicitud confirmada"
-    assert ultima["previous_status"] == "resolved"
-    assert ultima["new_status"] == "closed"
-    assert ultima["author_id"] == str(ids["tecnico"])
-    assert ultima["notes"] == "El usuario confirma que ya funciona"
+    assert primera.status_code == 200, primera.text
+    assert segunda.status_code == 422
+    assert segunda.json()["code"] == "business_rule_violation"
+    assert len(_bitacora(maker, "SIG-0001")) == 1
+    assert _leer(maker, "SIG-0001").status == RequestStatus.CLOSED
+
+
+@pytest.mark.parametrize("estado", OTROS_ESTADOS, ids=[e.value for e in OTROS_ESTADOS])
+def test_confirmar_fuera_del_estado_resuelta_responde_422_y_no_modifica(cliente, estado) -> None:
+    client, maker, ids = cliente
+    _crear(maker, ids, "SIG-0001", estado)
+
+    respuesta = client.post("/mis-solicitudes/SIG-0001/confirmar", json={})
+
+    assert respuesta.status_code == 422
+    assert respuesta.json()["code"] == "business_rule_violation"
+    guardada = _leer(maker, "SIG-0001")
+    assert guardada.status == estado
+    assert guardada.closed_at is None
+    assert _bitacora(maker, "SIG-0001") == []
 
 
 @pytest.mark.parametrize(
-    "estado",
-    [
-        RequestStatus.REGISTERED,
-        RequestStatus.ASSIGNED,
-        RequestStatus.IN_PROGRESS,
-        RequestStatus.WAITING,
-    ],
+    "cuerpo",
+    [{"notes": ""}, {"notes": "x" * 501}, {"comentario": "todo bien"}],
+    ids=["notas-vacias", "notas-de-501-caracteres", "campo-desconocido"],
 )
-def test_confirmar_una_solicitud_no_resuelta_responde_409_y_no_la_modifica(cliente, estado) -> None:
+def test_confirmar_rechaza_notas_invalidas_y_no_cierra_la_solicitud(cliente, cuerpo) -> None:
     client, maker, ids = cliente
-    request_id = _crear_solicitud(maker, ids, estado)
+    _crear(maker, ids, "SIG-0001")
 
-    respuesta = client.post(f"/solicitudes/{request_id}/confirmar", json={})
+    respuesta = client.post("/mis-solicitudes/SIG-0001/confirmar", json=cuerpo)
 
-    assert respuesta.status_code == 409
-    detalle = client.get(f"/solicitudes/{request_id}").json()
-    assert detalle["status"] == estado.value
-    assert detalle["closed_at"] is None
+    assert respuesta.status_code == 422
+    assert respuesta.json()["code"] == "validation_error"
+    assert _leer(maker, "SIG-0001").status == RequestStatus.RESOLVED
 
 
-def test_confirmar_dos_veces_responde_409(cliente) -> None:
+def test_confirmar_acepta_notas_de_exactamente_500_caracteres(cliente) -> None:
     client, maker, ids = cliente
-    request_id = _crear_solicitud(maker, ids, RequestStatus.RESOLVED)
+    _crear(maker, ids, "SIG-0001")
 
-    primera = client.post(f"/solicitudes/{request_id}/confirmar", json={})
-    segunda = client.post(f"/solicitudes/{request_id}/confirmar", json={})
+    respuesta = client.post("/mis-solicitudes/SIG-0001/confirmar", json={"notes": "x" * 500})
 
-    assert primera.status_code == 200
-    assert segunda.status_code == 409
-    entradas = client.get(f"/solicitudes/{request_id}/bitacora").json()
-    assert [e["action"] for e in entradas].count("Solicitud confirmada") == 1
+    assert respuesta.status_code == 200, respuesta.text
+    assert _leer(maker, "SIG-0001").status == RequestStatus.CLOSED
 
 
-def test_confirmar_una_solicitud_inexistente_responde_404(cliente) -> None:
-    client, _maker, _ids = cliente
-
-    respuesta = client.post(f"/solicitudes/{uuid.uuid4()}/confirmar", json={})
-
-    assert respuesta.status_code == 404
-
-
-@pytest.mark.parametrize("rol", ["requester", "classifier", "auditor"])
-def test_confirmar_exige_permiso_de_cierre(cliente, rol) -> None:
+def test_tras_confirmar_la_lista_y_la_consulta_la_muestran_cerrada(cliente) -> None:
     client, maker, ids = cliente
-    request_id = _crear_solicitud(maker, ids, RequestStatus.RESOLVED)
-    fastapi_app.dependency_overrides[get_current_user] = lambda: _como(ids["tecnico"], rol)
+    _crear(maker, ids, "SIG-0001")
 
-    respuesta = client.post(f"/solicitudes/{request_id}/confirmar", json={})
+    client.post("/mis-solicitudes/SIG-0001/confirmar", json={})
 
-    assert respuesta.status_code == 403
-    fastapi_app.dependency_overrides[get_current_user] = lambda: _como(
-        ids["tecnico"], "support_agent"
+    lista = client.get("/mis-solicitudes").json()
+    assert [(s["folio"], s["status"]) for s in lista] == [("SIG-0001", "closed")]
+    detalle = client.get("/mis-solicitudes/SIG-0001").json()
+    assert detalle["status"] == "closed"
+    assert detalle["closed_at"] is not None
+    assert detalle["log"][-1]["action"] == "Solicitud confirmada"
+
+
+# --- Consulta por folio --------------------------------------------------------------
+
+
+def test_sin_acuerdo_de_nivel_de_servicio_no_hay_fecha_compromiso(cliente) -> None:
+    client, maker, ids = cliente
+    _crear(maker, ids, "SIG-0001", RequestStatus.REGISTERED)
+
+    respuesta = client.get("/mis-solicitudes/SIG-0001")
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["due_at"] is None
+
+
+def test_la_otra_persona_solo_ve_sus_propios_folios(cliente) -> None:
+    client, maker, ids = cliente
+    _crear(maker, ids, "SIG-0001", dueno="solicitante")
+    _crear(maker, ids, "SIG-0002", dueno="otra")
+    _actuar_como(ids["otra"])
+
+    propio = client.get("/mis-solicitudes/SIG-0002")
+    ajeno = client.get("/mis-solicitudes/SIG-0001")
+    confirmar_ajeno = client.post("/mis-solicitudes/SIG-0001/confirmar", json={})
+
+    assert propio.status_code == 200
+    assert ajeno.status_code == 404
+    assert confirmar_ajeno.status_code == 404
+    assert _leer(maker, "SIG-0001").status == RequestStatus.RESOLVED
+    assert [s["folio"] for s in client.get("/mis-solicitudes").json()] == ["SIG-0002"]
+
+
+def test_el_administrador_solo_consulta_sus_propias_solicitudes(cliente) -> None:
+    client, maker, ids = cliente
+    _crear(maker, ids, "SIG-0001", dueno="solicitante")
+    _crear(maker, ids, "SIG-0002", dueno="admin")
+    _actuar_como(ids["admin"], "administrator")
+
+    assert client.get("/mis-solicitudes/SIG-0002").status_code == 200
+    assert client.get("/mis-solicitudes/SIG-0001").status_code == 404
+
+
+# --- Flujo completo ------------------------------------------------------------------
+
+
+def test_el_tecnico_resuelve_la_persona_consulta_y_confirma(cliente) -> None:
+    client, maker, ids = cliente
+    request_id = _crear(maker, ids, "SIG-0001", RequestStatus.IN_PROGRESS)
+
+    _actuar_como(ids["tecnico"], "support_agent")
+    resuelta = client.post(
+        f"/solicitudes/{request_id}/resolver", json={"solution": "Se reinició el conmutador."}
     )
-    assert client.get(f"/solicitudes/{request_id}").json()["status"] == "resolved"
+    assert resuelta.status_code == 200, resuelta.text
 
+    _actuar_como(ids["solicitante"])
+    consulta = client.get("/mis-solicitudes/SIG-0001").json()
+    assert consulta["status"] == "resolved"
+    assert consulta["resolved_at"] is not None
+    assert consulta["closed_at"] is None
 
-# --- Consulta por folio (pendiente de S4-01) -----------------------------------------
-# TODO(S4-01): agregar aquí las pruebas de `GET /solicitudes/{folio}` cuando el endpoint
-# esté en main: folio existente, folio inexistente (404) y acceso solo al solicitante.
+    confirmada = client.post("/mis-solicitudes/SIG-0001/confirmar", json={"notes": NOTA})
+    assert confirmada.status_code == 200, confirmada.text
+    assert confirmada.json()["status"] == "closed"
+
+    _actuar_como(ids["tecnico"], "support_agent")
+    acciones = [e["action"] for e in client.get(f"/solicitudes/{request_id}/bitacora").json()]
+    assert acciones[-1] == "Solicitud confirmada"
+    assert len(acciones) == 2
