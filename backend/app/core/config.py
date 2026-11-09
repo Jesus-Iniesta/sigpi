@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     database_user: str = ""
     database_password: str = ""
     classification_confidence_threshold: float = 0.75
+    # Conjunto de datos del clasificador (S4-12), relativo a la raíz del repositorio.
+    classifier_dataset_path: str = "ml/data/dataset_v1.csv"
     sla_warning_threshold: float = 0.80
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
