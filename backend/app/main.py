@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers.auditoria import router as auditoria_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.catalog import router as catalog_router
+from app.api.routers.mis_solicitudes import router as mis_solicitudes_router
 from app.api.routers.notificaciones import router as notificaciones_router
 from app.api.routers.seguimiento import router as seguimiento_router
 from app.api.routers.sla import router as sla_router
@@ -37,6 +38,7 @@ app.include_router(seguimiento_router)
 app.include_router(notificaciones_router)
 app.include_router(sla_router)
 app.include_router(auditoria_router)
+app.include_router(mis_solicitudes_router)
 
 @app.get("/health", tags=["system"])
 async def health() -> dict[str, str]:
