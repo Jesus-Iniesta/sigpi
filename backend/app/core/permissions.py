@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class Permission(StrEnum):
     REQUESTS_READ = "requests.read"
+    REQUESTS_VIEW_OWN = "requests.view_own"
     REQUESTS_CREATE = "requests.create"
     REQUESTS_CREATE_ASSISTED = "requests.create_assisted"
     REQUESTS_UPDATE = "requests.update"
@@ -72,6 +73,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.REQUESTS_RESOLVE,
             Permission.REQUESTS_CLOSE,
             Permission.CLASSIFICATION_READ,
+            Permission.CLASSIFICATION_REVIEW,
             Permission.KNOWLEDGE_READ,
             Permission.INVENTORY_READ,
             Permission.MAINTENANCE_READ,
@@ -106,6 +108,7 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
         {
             Permission.REQUESTS_READ,
             Permission.REQUESTS_CREATE,
+            Permission.REQUESTS_VIEW_OWN,
             Permission.KNOWLEDGE_READ,
             Permission.SLA_CONTRACT_DOWNLOAD,
         }
