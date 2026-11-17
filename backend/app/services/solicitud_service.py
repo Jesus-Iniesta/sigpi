@@ -19,14 +19,19 @@ from app.domain.estados import estado_inicial
 from app.domain.eventos import EventoAviso
 from app.models.catalog import Categoria
 from app.models.classification import ClassificationResult, ModelVersion
-from app.models.enums import RequestChannel, RequestStatus
+from app.models.enums import Priority, RequestChannel, RequestStatus
 from app.models.identity import User
 from app.models.request import Request, RequestLog
 from app.repositories.auditoria_repository import AuditoriaRepository
 from app.repositories.revision_repository import RevisionRepository
 from app.repositories.sla_repository import SlaRepository
 from app.repositories.solicitud_repository import SolicitudRepository
-from app.schemas.request import RequestAssistedCreate, RequestCreate
+from app.schemas.request import (
+    RequestAssistedCreate,
+    RequestCreate,
+    RequestPage,
+    RequestSummary,
+)
 from app.services.auditoria_service import AuditoriaService
 from app.services.clasificacion_service import ClasificacionService
 from app.services.notificacion_service import NotificacionService
@@ -251,6 +256,33 @@ class SolicitudService:
                 f"requester {payload.requester_institutional_id} is inactive"
             )
         return requester
+
+    async def listar(
+        self,
+        *,
+        texto: str | None = None,
+        status: RequestStatus | None = None,
+        priority: Priority | None = None,
+        requester_id: uuid.UUID | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> RequestPage:
+        """Listado de solicitudes con búsqueda, filtros y paginación (HU-04.6, parcial)."""
+        filas, total = await self._repository.search(
+            texto=texto,
+            status=status,
+            priority=priority,
+            requester_id=requester_id,
+            limit=limit,
+            offset=offset,
+        )
+        items = [
+            RequestSummary.model_validate(solicitud).model_copy(
+                update={"category_name": categoria, "requester_name": nombre}
+            )
+            for solicitud, categoria, nombre in filas
+        ]
+        return RequestPage(items=items, total=total, limit=limit, offset=offset)
 
     async def _unverified_note(self, institutional_id: str) -> str:
         """Explain in the bitácora why the requester was left pending verification."""

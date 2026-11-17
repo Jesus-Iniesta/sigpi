@@ -145,6 +145,25 @@ class RequestListItem(BaseModel):
     updated_at: datetime
 
 
+class RequestSummary(RequestListItem):
+    """Renglón del listado de solicitudes: datos compactos más categoría y solicitante."""
+
+    physical_location: str
+    channel: RequestChannel
+    requester_institutional_id: str | None = None
+    category_name: str | None = None
+    requester_name: str | None = None
+
+
+class RequestPage(BaseModel):
+    """Página de resultados del listado: `total` cuenta todas las coincidencias."""
+
+    items: list[RequestSummary]
+    total: int
+    limit: int
+    offset: int
+
+
 class RequestLogCreate(BaseModel):
     """Fields accepted when appending a new entry to a request's bitácora."""
 

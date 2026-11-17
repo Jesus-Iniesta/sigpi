@@ -2,18 +2,20 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, require_permission
-from app.core.permissions import Permission
+from app.core.permissions import Permission, RoleName
 from app.db.session import get_session
 from app.integrations.directory_client import StubDirectoryClient
+from app.models.enums import Priority, RequestStatus
 from app.models.identity import User
 from app.repositories.solicitud_repository import SolicitudRepository
 from app.schemas.request import (
     RequestAssistedCreate,
     RequestCreate,
+    RequestPage,
     RequestRead,
     RequestWaitCreate,
 )
@@ -65,6 +67,32 @@ async def create_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
+
+
+@router.get("", response_model=RequestPage)
+async def list_requests(
+    q: str | None = Query(default=None, max_length=120),
+    estatus: RequestStatus | None = Query(default=None, alias="status"),
+    prioridad: Priority | None = Query(default=None, alias="priority"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    user: User = Depends(require_permission(Permission.REQUESTS_READ)),
+    service: SolicitudService = Depends(get_solicitud_service),
+) -> RequestPage:
+    """Listado con búsqueda (`q`), filtros por estatus y prioridad y paginación.
+
+    El personal ve todas las solicitudes; quien solo tiene el rol de solicitante ve
+    únicamente las suyas.
+    """
+    ve_todas = any(ur.role is not None and ur.role.name != RoleName.REQUESTER for ur in user.roles)
+    return await service.listar(
+        texto=q,
+        status=estatus,
+        priority=prioridad,
+        requester_id=None if ve_todas else user.id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/asistido", response_model=RequestRead, status_code=status.HTTP_201_CREATED)
