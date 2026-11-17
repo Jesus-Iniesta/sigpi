@@ -31,6 +31,7 @@ services:
     volumes:
       - ./backend:/app
       - ./ml:/ml:ro
+      - ./frontend:/frontend:ro
 
   frontend:
     build: ./frontend

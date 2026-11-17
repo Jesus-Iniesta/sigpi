@@ -3,13 +3,22 @@
 import re
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.catalog import Categoria
+from app.models.enums import Priority, RequestStatus
+from app.models.identity import User
 from app.models.request import Request, RequestAssignment
 
 _FOLIO_PATTERN = re.compile(r"^SIG-(\d+)$")
+
+
+def _patron_busqueda(texto: str) -> str:
+    """Patrón `ILIKE` que trata `%` y `_` del texto como caracteres literales."""
+    escapado = texto.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escapado}%"
 
 
 class SolicitudRepository:
@@ -66,3 +75,56 @@ class SolicitudRepository:
             .execution_options(populate_existing=True)
         )
         return result.first()
+
+    async def search(
+        self,
+        *,
+        texto: str | None,
+        status: RequestStatus | None,
+        priority: Priority | None,
+        requester_id: uuid.UUID | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[tuple[Request, str | None, str | None]], int]:
+        """Listado paginado, de la más reciente a la más antigua.
+
+        Devuelve filas `(solicitud, nombre de la categoría, nombre del solicitante)` y el
+        total de coincidencias. El texto se busca, sin distinguir mayúsculas, en el folio,
+        el título, la descripción, la matrícula o clave del solicitante y su nombre.
+        `requester_id` limita el listado a las solicitudes de una persona.
+        """
+        filtros = []
+        if requester_id is not None:
+            filtros.append(Request.requester_id == requester_id)
+        if status is not None:
+            filtros.append(Request.status == status.value)
+        if priority is not None:
+            filtros.append(Request.priority == priority.value)
+        if texto and texto.strip():
+            patron = _patron_busqueda(texto)
+            filtros.append(
+                or_(
+                    Request.folio.ilike(patron, escape="\\"),
+                    Request.title.ilike(patron, escape="\\"),
+                    Request.description.ilike(patron, escape="\\"),
+                    Request.requester_institutional_id.ilike(patron, escape="\\"),
+                    User.full_name.ilike(patron, escape="\\"),
+                )
+            )
+
+        total = await self._session.scalar(
+            select(func.count(Request.id))
+            .select_from(Request)
+            .outerjoin(User, Request.requester_id == User.id)
+            .where(*filtros)
+        )
+        filas = await self._session.execute(
+            select(Request, Categoria.name, User.full_name)
+            .outerjoin(Categoria, Request.category_id == Categoria.id)
+            .outerjoin(User, Request.requester_id == User.id)
+            .where(*filtros)
+            .order_by(Request.created_at.desc(), Request.folio.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return [(r, categoria, nombre) for r, categoria, nombre in filas.all()], total or 0
