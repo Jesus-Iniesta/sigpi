@@ -1,18 +1,23 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   createRequest,
   type CreateRequestInput,
   type Request,
 } from '@/api/solicitudes'
 import { getErrorMessage, getFieldErrors } from '@/shared/lib/error-messages'
+import { SOLICITUDES_LISTA_KEY } from './use-solicitudes'
 
 /**
  * Registra una solicitud de soporte (HU-01.1).
  * Expone la solicitud creada para mostrar el acuse con su folio.
  */
 export function useCrearSolicitud() {
+  const queryClient = useQueryClient()
   const mutation = useMutation<Request, Error, CreateRequestInput>({
     mutationFn: createRequest,
+    // La solicitud nueva debe aparecer de inmediato en el listado.
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: SOLICITUDES_LISTA_KEY }),
   })
 
   return {
