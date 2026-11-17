@@ -17,8 +17,23 @@ import { CampanaAvisos } from '@/features/notificaciones/components/CampanaAviso
 import { cn } from '@/shared/lib/utils'
 
 const assistedRoles = ['administrator', 'service_manager', 'support_agent']
-const reviewRoles = ['administrator', 'service_manager', 'classifier']
+// Mismos roles que las rutas de App.tsx (permiso classification.review).
+const reviewRoles = [
+  'administrator',
+  'service_manager',
+  'classifier',
+  'support_agent',
+]
 const requesterRoles = ['requester']
+const adminRoles = ['administrator']
+// Roles con el permiso catalog.read.
+const catalogRoles = [
+  'administrator',
+  'service_manager',
+  'support_agent',
+  'classifier',
+  'auditor',
+]
 
 type NavigationItem = {
   label: string
@@ -49,8 +64,14 @@ const navigation: NavigationItem[] = [
     icon: FileSearch,
     roles: requesterRoles,
   },
-  { label: 'Usuarios', to: '/usuarios', icon: Users },
-  { label: 'Catálogo', to: '/catalogo', icon: BookOpen },
+  { label: 'Usuarios', to: '/usuarios', icon: Users, roles: adminRoles },
+  {
+    label: 'Catálogo',
+    to: '/catalogo',
+    icon: BookOpen,
+    roles: catalogRoles,
+  },
+  // Sin filtro de rol: el solicitante descarga aquí el contrato del acuerdo.
   { label: 'Tickets', to: '/sla', icon: Timer },
 ]
 
@@ -88,7 +109,7 @@ export function AppLayout() {
           </div>
           <div>
             <p className="font-semibold tracking-tight">SIGPI</p>
-            <p className="text-xs text-white/55">Gestion institucional</p>
+            <p className="text-xs text-white/55">Gestión institucional</p>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-7">
@@ -138,7 +159,7 @@ export function AppLayout() {
           <button
             type="button"
             className="rounded-md p-2 text-[#52616b] lg:hidden"
-            aria-label="Abrir menu"
+            aria-label="Abrir menú"
           >
             <Menu size={20} />
           </button>

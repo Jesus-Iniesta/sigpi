@@ -3,13 +3,29 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Clock3,
+  FileSearch,
   FileText,
   ShieldCheck,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getHealth } from '@/api/health'
+import { useAuth } from '@/features/auth/auth-context'
 import { Button } from '@/shared/ui/button'
 
+// Roles que operan el servicio y ven el panel completo.
+const staffRoles = ['administrator', 'service_manager', 'support_agent']
+
+const roleLabels: Record<string, string> = {
+  administrator: 'Administrador',
+  service_manager: 'Jefe de servicio',
+  support_agent: 'Técnico de soporte',
+  classifier: 'Clasificador',
+  knowledge_manager: 'Gestor de conocimiento',
+  auditor: 'Auditor',
+  requester: 'Solicitante',
+}
+
+// Datos de ejemplo: todavía no se alimentan desde la API.
 const metrics = [
   {
     label: 'Solicitudes activas',
@@ -22,7 +38,7 @@ const metrics = [
   {
     label: 'En seguimiento',
     value: '08',
-    detail: '3 requieren atencion hoy',
+    detail: '3 requieren atención hoy',
     icon: Clock3,
     color: 'text-[#b7791f]',
     bg: 'bg-[#f8edcf]',
@@ -37,115 +53,168 @@ const metrics = [
   },
 ]
 
+function getGreeting(date: Date): string {
+  const hour = date.getHours()
+  if (hour < 12) return 'Buenos días'
+  if (hour < 19) return 'Buenas tardes'
+  return 'Buenas noches'
+}
+
 export function DashboardPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const health = useQuery({
     queryKey: ['health'],
     queryFn: getHealth,
     retry: 1,
   })
 
+  const isStaff = user?.roles.some((role) => staffRoles.includes(role)) ?? false
+  const isRequester = user?.roles.includes('requester') ?? false
+  const firstName = user?.full_name.split(' ')[0] ?? ''
+  const roleLabel =
+    user?.roles.map((role) => roleLabels[role] ?? role).join(', ') ?? ''
+
   return (
     <div className="space-y-8">
       <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-xs font-bold tracking-[0.16em] text-[#0f766e] uppercase">
-            Panel de control
+            {roleLabel ? `Panel de ${roleLabel.toLowerCase()}` : 'Panel de control'}
           </p>
           <h1 className="text-3xl font-bold tracking-tight text-[#17212b] sm:text-4xl">
-            Buenos dias, Administrador
+            {getGreeting(new Date())}
+            {firstName ? `, ${firstName}` : ''}
           </h1>
           <p className="mt-2 text-[#718096]">
-            Aqui tienes el pulso de la gestion institucional.
+            {isStaff
+              ? 'Aquí tienes el pulso de la gestión institucional.'
+              : 'Registra tus solicitudes de soporte y consulta su avance.'}
           </p>
         </div>
-        <Button
-          onClick={() =>
-            navigate('/solicitudes', { state: { openForm: true } })
-          }
-        >
-          <ArrowUpRight size={16} />
-          Nueva solicitud
-        </Button>
-      </section>
-      <section className="grid gap-4 md:grid-cols-3">
-        {metrics.map(({ label, value, detail, icon: Icon, color, bg }) => (
-          <article
-            key={label}
-            className="rounded-xl border border-[#dce6e4] bg-white p-5 shadow-[0_8px_24px_rgba(35,64,62,0.04)]"
+        <div className="flex flex-wrap gap-3">
+          {isRequester && (
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/mis-solicitudes')}
+            >
+              <FileSearch size={16} />
+              Mis solicitudes
+            </Button>
+          )}
+          <Button
+            onClick={() =>
+              navigate('/solicitudes', { state: { openForm: true } })
+            }
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-[#718096]">{label}</p>
-                <p className="mt-3 font-mono text-3xl font-bold tracking-tight">
-                  {value}
-                </p>
-              </div>
-              <div
-                className={`grid size-10 place-items-center rounded-lg ${bg} ${color}`}
-              >
-                <Icon size={19} />
-              </div>
-            </div>
-            <p className="mt-4 text-xs text-[#718096]">{detail}</p>
-          </article>
-        ))}
+            <ArrowUpRight size={16} />
+            Nueva solicitud
+          </Button>
+        </div>
       </section>
-      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-        <article className="rounded-xl border border-[#dce6e4] bg-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold">Actividad reciente</h2>
-              <p className="mt-1 text-sm text-[#718096]">
-                Ultimas actualizaciones del sistema
-              </p>
-            </div>
-            <Button variant="ghost">Ver todo</Button>
-          </div>
-          <div className="mt-6 divide-y divide-[#edf2f1]">
-            {[
-              'Solicitud de mantenimiento actualizada',
-              'Nuevo registro de conocimiento creado',
-              'SLA de infraestructura revisado',
-            ].map((item, index) => (
-              <div
-                key={item}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+
+      {isStaff && (
+        <>
+          <section className="grid gap-4 md:grid-cols-3">
+            {metrics.map(({ label, value, detail, icon: Icon, color, bg }) => (
+              <article
+                key={label}
+                className="rounded-xl border border-[#dce6e4] bg-white p-5 shadow-[0_8px_24px_rgba(35,64,62,0.04)]"
               >
-                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf6f4] text-[#0f766e]">
-                  <ShieldCheck size={17} />
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-[#718096]">{label}</p>
+                    <p className="mt-3 font-mono text-3xl font-bold tracking-tight">
+                      {value}
+                    </p>
+                  </div>
+                  <div
+                    className={`grid size-10 place-items-center rounded-lg ${bg} ${color}`}
+                  >
+                    <Icon size={19} />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{item}</p>
-                  <p className="mt-1 text-xs text-[#87959c]">
-                    Hace {index + 1} horas · Sistema SIGPI
+                <p className="mt-4 text-xs text-[#718096]">{detail}</p>
+              </article>
+            ))}
+          </section>
+          <p className="-mt-4 text-xs text-[#87959c]">
+            Las cifras de este panel son datos de ejemplo.
+          </p>
+
+          <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+            <article className="rounded-xl border border-[#dce6e4] bg-white p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">Actividad reciente</h2>
+                  <p className="mt-1 text-sm text-[#718096]">
+                    Últimas actualizaciones del sistema
                   </p>
                 </div>
-                <span className="size-2 rounded-full bg-[#e6b85c]" />
+                <Button variant="ghost">Ver todo</Button>
               </div>
-            ))}
-          </div>
-        </article>
-        <article className="rounded-xl bg-[#123b3a] p-6 text-white">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-white/70">Conexion API</p>
-            <span
-              className={`size-2 rounded-full ${health.isSuccess ? 'bg-[#8bd3a8]' : 'bg-[#e6b85c]'}`}
-            />
-          </div>
-          <h2 className="mt-8 text-2xl font-bold">
-            {health.isSuccess ? 'Sistema operativo' : 'Esperando backend'}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-white/60">
-            {health.isSuccess
-              ? `${health.data.service} responde correctamente.`
-              : 'Inicia FastAPI en el puerto 8000 para verificar la conexion.'}
-          </p>
-          <div className="mt-8 border-t border-white/10 pt-4 text-xs text-white/45">
-            GET /health · TanStack Query
-          </div>
-        </article>
-      </section>
+              <div className="mt-6 divide-y divide-[#edf2f1]">
+                {[
+                  'Solicitud de mantenimiento actualizada',
+                  'Nuevo registro de conocimiento creado',
+                  'SLA de infraestructura revisado',
+                ].map((item, index) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                  >
+                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf6f4] text-[#0f766e]">
+                      <ShieldCheck size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{item}</p>
+                      <p className="mt-1 text-xs text-[#87959c]">
+                        Hace {index + 1} horas · Sistema SIGPI
+                      </p>
+                    </div>
+                    <span className="size-2 rounded-full bg-[#e6b85c]" />
+                  </div>
+                ))}
+              </div>
+            </article>
+            <article className="rounded-xl bg-[#123b3a] p-6 text-white">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-white/70">
+                  Conexión API
+                </p>
+                <span
+                  className={`size-2 rounded-full ${health.isSuccess ? 'bg-[#8bd3a8]' : 'bg-[#e6b85c]'}`}
+                />
+              </div>
+              <h2 className="mt-8 text-2xl font-bold">
+                {health.isSuccess ? 'Sistema operativo' : 'Esperando backend'}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/60">
+                {health.isSuccess
+                  ? `${health.data.service} responde correctamente.`
+                  : 'Inicia FastAPI en el puerto 8000 para verificar la conexión.'}
+              </p>
+              <div className="mt-8 border-t border-white/10 pt-4 text-xs text-white/45">
+                GET /health · TanStack Query
+              </div>
+            </article>
+          </section>
+        </>
+      )}
+
+      {!isStaff && (
+        <section className="rounded-xl border border-[#dce6e4] bg-white p-6">
+          <h2 className="text-lg font-bold">¿Cómo funciona?</h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-[#718096]">
+            <li>Registra tu solicitud con «Nueva solicitud».</li>
+            <li>El sistema la clasifica y le asigna una prioridad.</li>
+            <li>
+              Consulta su estatus en «Mis solicitudes» y confirma la solución
+              cuando se resuelva.
+            </li>
+          </ol>
+        </section>
+      )}
     </div>
   )
 }

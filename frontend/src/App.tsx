@@ -23,6 +23,14 @@ const reviewRoles = [
 ]
 // Único rol con el permiso requests.view_own (S4-01).
 const requesterRoles = ['requester']
+// Roles con el permiso catalog.read (backend/app/core/permissions.py).
+const catalogRoles = [
+  'administrator',
+  'service_manager',
+  'support_agent',
+  'classifier',
+  'auditor',
+]
 
 function App() {
   return (
@@ -49,7 +57,11 @@ function App() {
               element={<MiSolicitudPage />}
             />
           </Route>
-          <Route path="catalogo" element={<CatalogPage />} />
+          <Route element={<RequireAuth requiredRoles={catalogRoles} />}>
+            <Route path="catalogo" element={<CatalogPage />} />
+          </Route>
+          {/* /sla queda abierto a todo usuario autenticado: el solicitante
+              descarga ahí el contrato del acuerdo de servicio. */}
           <Route path="sla" element={<SlaPage />} />
           <Route element={<RequireAuth requiredRoles={['administrator']} />}>
             <Route path="usuarios" element={<UsersPage />} />
