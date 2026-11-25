@@ -128,3 +128,43 @@ class SolicitudRepository:
             .offset(offset)
         )
         return [(r, categoria, nombre) for r, categoria, nombre in filas.all()], total or 0
+
+    async def list_asignadas(
+        self,
+        *,
+        technician_id: uuid.UUID | None,
+        status: RequestStatus | None,
+        priority: Priority | None,
+    ) -> list[tuple[Request, str | None]]:
+        """Solicitudes abiertas con una asignación vigente, con el nombre de su categoría.
+
+        Una asignación es vigente mientras `unassigned_at` sea nulo. Con `technician_id`
+        solo se devuelven las asignadas a ese técnico; sin él, todas las que tengan una
+        asignación vigente. Las cerradas (con o sin verificación) se excluyen. Se cargan
+        el SLA y las esperas para calcular la fecha compromiso; el orden lo da el servicio.
+        """
+        vigente = select(RequestAssignment.id).where(
+            RequestAssignment.request_id == Request.id,
+            RequestAssignment.unassigned_at.is_(None),
+        )
+        if technician_id is not None:
+            vigente = vigente.where(RequestAssignment.technician_id == technician_id)
+        filtros = [
+            vigente.exists(),
+            Request.status.not_in([RequestStatus.CLOSED, RequestStatus.CLOSED_UNVERIFIED]),
+        ]
+        if status is not None:
+            filtros.append(Request.status == status.value)
+        if priority is not None:
+            filtros.append(Request.priority == priority.value)
+
+        filas = await self._session.execute(
+            select(Request, Categoria.name)
+            .outerjoin(Categoria, Request.category_id == Categoria.id)
+            .where(*filtros)
+            .options(
+                selectinload(Request.service_level_version),
+                selectinload(Request.sla_pauses),
+            )
+        )
+        return [(r, categoria) for r, categoria in filas.all()]
