@@ -20,6 +20,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todas las tablas en Base.metadata)
 from app.api.dependencies import get_current_user
+from app.core.config import settings
 from app.core.permissions import RoleName
 from app.db.base import Base
 from app.db.session import get_session
@@ -51,6 +52,7 @@ from app.services.usuario_service import UsuarioService
 KNOWN_ACCOUNT = "uaem2026001"
 VALID_PASSWORD = "ClaveSegura#2026"
 ADMIN_IP = "203.0.113.7"
+PROXY_IP = "10.0.0.1"
 
 
 def _en_sesion(user_id: uuid.UUID, role: str) -> SimpleNamespace:
@@ -181,7 +183,12 @@ def _catalogo(env: Entorno) -> dict[str, str]:
 
 
 # --- usuarios -------------------------------------------------------------------
-def test_alta_de_usuario_deja_un_registro_con_autor_fecha_valores_e_ip(entorno) -> None:
+def test_alta_de_usuario_deja_un_registro_con_autor_fecha_valores_e_ip(
+    entorno, monkeypatch
+) -> None:
+    # La petición llega por un proxy de confianza, así que se audita la IP del encabezado.
+    monkeypatch.setattr(settings, "trusted_proxies", PROXY_IP)
+    entorno.client = TestClient(fastapi_app, client=(PROXY_IP, 50000))
     user = _alta_usuario(entorno)
 
     registros = entorno.registros(entity_type="user", entity_id=user["id"])
@@ -388,7 +395,8 @@ def test_get_auditoria_responde_200_a_un_auditor_en_orden_cronologico(entorno) -
     fechas = [datetime.fromisoformat(r["created_at"]) for r in body]
     assert fechas == sorted(fechas)
     assert body[0]["actor_id"] == str(entorno.ids["admin"])
-    assert body[0]["ip_address"] == ADMIN_IP
+    # Sin proxy de confianza configurado se audita la IP del cliente directo (S5-08).
+    assert body[0]["ip_address"] == "testclient"
 
 
 def test_get_auditoria_sin_filtros_devuelve_todo_en_orden_cronologico(entorno) -> None:
