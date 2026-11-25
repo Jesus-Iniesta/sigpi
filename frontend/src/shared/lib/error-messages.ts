@@ -36,6 +36,8 @@ const BUSINESS_CODE_MESSAGES: Record<string, string> = {
   sla_name_not_allowed: 'El nombre del acuerdo de servicio no está permitido.',
   sla_without_current_version:
     'El acuerdo de servicio no tiene una versión vigente.',
+  technician_not_found: 'El técnico indicado no existe.',
+  technician_unavailable: 'El técnico indicado está inactivo o no es técnico.',
 }
 
 /** Mapa `code → mensaje en español`. */
