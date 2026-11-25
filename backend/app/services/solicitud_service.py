@@ -153,7 +153,7 @@ class SolicitudService:
         self, request: Request, author_id: uuid.UUID, conservar_niveles: bool
     ) -> None:
         resultado = await self._clasificacion.clasificar(request, confirmar=False)
-        estatus = decidir_estatus(resultado)
+        estatus = decidir_estatus(resultado, await self._clasificacion.umbral_vigente())
         request.classification_confidence = float(resultado.confidence)
         if estatus == RequestStatus.CLASSIFIED:
             if resultado.category_id is not None:

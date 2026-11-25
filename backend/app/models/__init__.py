@@ -1,9 +1,15 @@
 """SQLAlchemy persistence models for SIGPI."""
 
 from app.models.academic import AcademicRecord, EducationalProgram
+from app.models.app_setting import AppSetting
 from app.models.auditoria import AuditLog, Auditoria
 from app.models.catalog import AreaServicio, Categoria, Especialidad, Turno
-from app.models.classification import ClassificationCorrection, ClassificationResult, ModelVersion
+from app.models.classification import (
+    ClassificationCorrection,
+    ClassificationResult,
+    ClassifierModel,
+    ModelVersion,
+)
 from app.models.identity import Role, User, UserRole, UserSpecialty
 from app.models.inventory import Asset, AssetCustody, PhysicalSpace
 from app.models.knowledge import KnowledgeArticle, KnowledgeSearch
@@ -21,6 +27,7 @@ from app.models.sla import ServiceLevelAgreement, ServiceLevelVersion
 
 __all__ = [
     "AcademicRecord",
+    "AppSetting",
     "AreaServicio",
     "Asset",
     "AssetCustody",
@@ -29,6 +36,7 @@ __all__ = [
     "Categoria",
     "ClassificationCorrection",
     "ClassificationResult",
+    "ClassifierModel",
     "EducationalProgram",
     "Especialidad",
     "KnowledgeArticle",

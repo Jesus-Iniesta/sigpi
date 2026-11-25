@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -59,3 +59,23 @@ class ClassificationCorrection(Base):
     result: Mapped[ClassificationResult] = relationship()
     corrected_by: Mapped["User"] = relationship()
     corrected_category: Mapped["Categoria | None"] = relationship()
+
+
+class ClassifierModel(Base):
+    """Modelo de clasificación reentrenado desde la administración (S5-06, HU-12.2).
+
+    Guarda los parámetros entrenados para que `ClasificacionService` use el vigente
+    (`is_active`) sin volver a entrenar ni reiniciar el proceso.
+    """
+
+    __tablename__ = "classifier_models"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    version: Mapped[str] = mapped_column(String(60), unique=True)
+    accuracy: Mapped[float] = mapped_column(Numeric(5, 4))
+    examples: Mapped[int] = mapped_column()
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON)
+    is_active: Mapped[bool] = mapped_column(default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
