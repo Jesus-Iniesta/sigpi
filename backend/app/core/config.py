@@ -1,7 +1,9 @@
 from urllib.parse import quote_plus
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.network import parse_trusted_proxies
 
 
 class Settings(BaseSettings):
@@ -21,6 +23,10 @@ class Settings(BaseSettings):
     sla_monitor_enabled: bool = False
     sla_monitor_interval_seconds: float = 30
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    # Proxies de confianza (S5-08): IPs o redes CIDR separadas por comas. Solo si la
+    # conexión directa viene de uno de ellos se usa `X-Forwarded-For` como IP auditada.
+    # Vacío por omisión: se audita siempre la IP del cliente directo.
+    trusted_proxies: str = ""
 
     # Registro de eventos (S3-01): DEBUG, INFO, WARNING o ERROR.
     log_level: str = "INFO" 
@@ -33,6 +39,13 @@ class Settings(BaseSettings):
     max_failed_login_attempts: int = 3
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @field_validator("trusted_proxies")
+    @classmethod
+    def _validar_proxies(cls, value: str) -> str:
+        """Falla al arrancar si `TRUSTED_PROXIES` trae algo que no es IP ni red CIDR."""
+        parse_trusted_proxies(value)
+        return value
 
     @property
     def database_url(self) -> str:
