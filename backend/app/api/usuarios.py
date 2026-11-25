@@ -5,7 +5,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import AuditContext, get_audit_context, require_permission
+from app.api.dependencies import (
+    AuditContext,
+    get_audit_context,
+    require_any_permission,
+    require_permission,
+)
 from app.core.permissions import Permission
 from app.db.session import get_session
 from app.domain.directory import DirectoryClient
@@ -73,7 +78,14 @@ async def create_user(
         ) from exc
 
 
-@router.get("", response_model=list[UserRead])
+# La consulta exige sesión: la usan la pantalla de usuarios (lectura de cuentas) y el
+# registro asistido, que busca al solicitante entre las cuentas activas (S5-08).
+_CONSULTA_CUENTAS = [
+    Depends(require_any_permission(Permission.IDENTITY_READ, Permission.REQUESTS_CREATE_ASSISTED))
+]
+
+
+@router.get("", response_model=list[UserRead], dependencies=_CONSULTA_CUENTAS)
 async def list_users(service: UsuarioService = Depends(get_usuario_service)) -> list[UserRead]:
     return await service.list_active_users()
 

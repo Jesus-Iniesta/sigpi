@@ -5,6 +5,8 @@ from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.network import parse_trusted_proxies, resolve_client_ip
 from app.core.permissions import Permission, has_permission
 from app.core.security import InvalidTokenError, decode_access_token
 from app.db.session import get_session
@@ -12,12 +14,15 @@ from app.domain.auditoria import AuditContext
 from app.models.identity import User
 from app.repositories.auth_repository import AuthRepository
 
-__all__ = ["AuditContext", "get_audit_context", "get_current_user", "require_permission"]
+__all__ = [
+    "AuditContext",
+    "get_audit_context",
+    "get_current_user",
+    "require_any_permission",
+    "require_permission",
+]
 
 bearer_scheme = HTTPBearer(auto_error=False)
-
-# Longitud de la columna `audit_logs.ip_address` (cabe una IPv6 completa).
-_IP_MAX_LENGTH = 45
 
 _UNAUTHENTICATED = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,10 +51,18 @@ async def get_current_user(
 
 def require_permission(permission: Permission):
     """Dependencia que deja pasar solo a usuarios con algún rol que otorgue el permiso."""
+    return require_any_permission(permission)
+
+
+def require_any_permission(*permissions: Permission):
+    """Dependencia que deja pasar a usuarios con algún rol que otorgue alguno de los
+    permisos indicados: sin sesión responde 401 y sin permiso, 403."""
 
     async def checker(user: User = Depends(get_current_user)) -> User:
         role_names = [ur.role.name for ur in user.roles if ur.role is not None]
-        if not any(has_permission(role, permission) for role in role_names):
+        if not any(
+            has_permission(role, permission) for role in role_names for permission in permissions
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permiso para realizar esta acción.",
@@ -60,15 +73,14 @@ def require_permission(permission: Permission):
 
 
 def client_ip(request: Request) -> str | None:
-    """IP de origen: el primer salto de `X-Forwarded-For` o, si no viene, la del socket."""
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        first = forwarded.split(",")[0].strip()
-        if first:
-            return first[:_IP_MAX_LENGTH]
-    if request.client is None:
-        return None
-    return request.client.host[:_IP_MAX_LENGTH]
+    """IP de origen para la auditoría: `X-Forwarded-For` solo si la conexión directa viene
+    de un proxy de confianza (`TRUSTED_PROXIES`); si no, la del cliente directo."""
+    direct_host = request.client.host if request.client is not None else None
+    return resolve_client_ip(
+        direct_host,
+        request.headers.get("x-forwarded-for"),
+        parse_trusted_proxies(settings.trusted_proxies),
+    )
 
 
 async def get_audit_context(

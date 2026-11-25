@@ -80,7 +80,9 @@ export function DashboardPage() {
       <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-xs font-bold tracking-[0.16em] text-[#0f766e] uppercase">
-            {roleLabel ? `Panel de ${roleLabel.toLowerCase()}` : 'Panel de control'}
+            {roleLabel
+              ? `Panel de ${roleLabel.toLowerCase()}`
+              : 'Panel de control'}
           </p>
           <h1 className="text-3xl font-bold tracking-tight text-[#17212b] sm:text-4xl">
             {getGreeting(new Date())}
