@@ -66,6 +66,8 @@ cp .env.example .env
 
 Completa en `.env` al menos `DATABASE_USER` y `DATABASE_PASSWORD`. La configuración completa está en [.env.example](backend/.env.example). No subas `.env` al repositorio.
 
+Si la API corre detrás de un proxy inverso (Nginx, balanceador), define `TRUSTED_PROXIES` con sus IPs o redes CIDR separadas por comas (por ejemplo `TRUSTED_PROXIES=10.0.0.5,172.16.0.0/12`). La bitácora de auditoría toma la IP del encabezado `X-Forwarded-For` **solo** cuando la conexión directa viene de uno de esos proxies; en cualquier otro caso registra la IP del cliente directo. Vacío por omisión, así que sin configurarla nadie puede falsificar su IP con ese encabezado.
+
 ### 3. Aplicar migraciones
 
 Desde `backend/`:
