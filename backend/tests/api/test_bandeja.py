@@ -119,8 +119,9 @@ def entorno():
             for folio, (prioridad, estatus, edad, espera, asignaciones) in SOLICITUDES.items():
                 alta = AHORA - timedelta(minutes=edad)
                 version = versiones.get(prioridad)
+                ids[folio] = uuid.uuid4()
                 request = Request(
-                    id=uuid.uuid4(),
+                    id=ids[folio],
                     category_id=ids["categoria"],
                     service_level_version_id=version.id if version else None,
                     folio=folio,
@@ -250,6 +251,15 @@ def test_cada_elemento_trae_los_datos_de_la_bandeja(cliente) -> None:
     )
     assert item["porcentaje_consumido"] == pytest.approx(83.3)
     assert item["en_riesgo"] is True
+
+
+def test_cada_elemento_trae_el_request_id_para_enlazar_al_detalle(cliente) -> None:
+    client, _actual, ids = cliente
+
+    items = _por_folio(client.get("/bandeja"))
+
+    for folio, item in items.items():
+        assert uuid.UUID(item["request_id"]) == ids[folio]
 
 
 @pytest.mark.parametrize(
