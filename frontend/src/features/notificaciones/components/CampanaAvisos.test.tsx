@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/client'
 import {
@@ -10,6 +11,7 @@ import {
   marcarTodosLosAvisosLeidos,
   type Aviso,
 } from '@/api/notificaciones'
+import type { UserRole } from '@/api/types'
 import { CampanaAvisos } from './CampanaAvisos'
 
 vi.mock('@/api/notificaciones', () => ({
@@ -17,6 +19,12 @@ vi.mock('@/api/notificaciones', () => ({
   getAvisosSinLeer: vi.fn(),
   marcarAvisoLeido: vi.fn(),
   marcarTodosLosAvisosLeidos: vi.fn(),
+}))
+
+let rolesEnSesion: UserRole[] = ['requester']
+
+vi.mock('@/features/auth/auth-context', () => ({
+  useAuth: () => ({ user: { roles: rolesEnSesion } }),
 }))
 
 const getAvisosMock = vi.mocked(getAvisos)
@@ -45,13 +53,24 @@ function renderizar() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <CampanaAvisos />
+      <MemoryRouter initialEntries={['/inicio']}>
+        <CampanaAvisos />
+        <Routes>
+          <Route path="*" element={<RutaActual />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
+function RutaActual() {
+  const { pathname } = useLocation()
+  return <p data-testid="ruta">{pathname}</p>
+}
+
 describe('CampanaAvisos (S4-06, HU-07.1)', () => {
   beforeEach(() => {
+    rolesEnSesion = ['requester']
     getAvisosSinLeerMock.mockResolvedValue(0)
     getAvisosMock.mockResolvedValue([])
     marcarAvisoLeidoMock.mockResolvedValue(construirAviso({ is_read: true }))
@@ -225,5 +244,72 @@ describe('CampanaAvisos (S4-06, HU-07.1)', () => {
     await waitFor(() =>
       expect(getAvisosSinLeerMock.mock.calls.length).toBeGreaterThanOrEqual(2),
     )
+  })
+  describe('enlace a la solicitud (S5-13)', () => {
+    async function abrirAviso(aviso: Aviso) {
+      getAvisosSinLeerMock.mockResolvedValue(aviso.is_read ? 0 : 1)
+      getAvisosMock.mockResolvedValue([aviso])
+      const usuario = userEvent.setup()
+      renderizar()
+      await usuario.click(await screen.findByRole('button', { name: /Avisos/ }))
+      await usuario.click(
+        await screen.findByRole('link', { name: aviso.subject }),
+      )
+    }
+
+    it('el solicitante va a «Mis solicitudes» por folio y el aviso queda leído', async () => {
+      await abrirAviso(construirAviso())
+
+      expect(screen.getByTestId('ruta')).toHaveTextContent(
+        '/mis-solicitudes/SIG-0012',
+      )
+      expect(marcarAvisoLeidoMock).toHaveBeenCalledWith('aviso-1')
+      expect(
+        screen.queryByRole('region', { name: 'Lista de avisos' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('el personal va al detalle de la solicitud por su identificador', async () => {
+      rolesEnSesion = ['support_agent']
+      await abrirAviso(construirAviso())
+
+      expect(screen.getByTestId('ruta')).toHaveTextContent('/solicitudes/req-1')
+      expect(marcarAvisoLeidoMock).toHaveBeenCalledWith('aviso-1')
+      expect(
+        screen.queryByRole('region', { name: 'Lista de avisos' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('abrir un aviso ya leído no lo vuelve a marcar', async () => {
+      rolesEnSesion = ['service_manager']
+      await abrirAviso(
+        construirAviso({ is_read: true, read_at: '2026-11-07T11:00:00Z' }),
+      )
+
+      expect(screen.getByTestId('ruta')).toHaveTextContent('/solicitudes/req-1')
+      expect(marcarAvisoLeidoMock).not.toHaveBeenCalled()
+    })
+
+    it('un aviso sin solicitud no es enlace', async () => {
+      getAvisosSinLeerMock.mockResolvedValue(1)
+      getAvisosMock.mockResolvedValue([
+        construirAviso({
+          request_id: null,
+          request_folio: null,
+          subject: 'Mantenimiento programado',
+        }),
+      ])
+      const usuario = userEvent.setup()
+      renderizar()
+
+      await usuario.click(
+        await screen.findByRole('button', { name: 'Avisos, 1 sin leer' }),
+      )
+
+      expect(
+        await screen.findByText('Mantenimiento programado'),
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    })
   })
 })
