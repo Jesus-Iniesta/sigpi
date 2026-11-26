@@ -1,6 +1,9 @@
 import { Bell, CheckCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Aviso } from '@/api/notificaciones'
+import type { UserRole } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-context'
 import { Button } from '@/shared/ui/button'
 import { ErrorAlert } from '@/shared/ui/error-alert'
 import { cn } from '@/shared/lib/utils'
@@ -13,6 +16,29 @@ import {
 
 const TOPE_CONTADOR = 99
 
+// Roles del personal: mismos que la ruta `/solicitudes/:id` en App.tsx.
+const ROLES_PERSONAL: UserRole[] = [
+  'administrator',
+  'service_manager',
+  'support_agent',
+]
+
+/**
+ * Pantalla a la que lleva un aviso (S5-13): el personal abre el detalle por UUID y el
+ * solicitante su consulta por folio. Devuelve `null` si el aviso no tiene solicitud.
+ */
+function destinoDelAviso(
+  aviso: Aviso,
+  roles: readonly UserRole[],
+): string | null {
+  if (!aviso.request_id) return null
+  if (roles.some((rol) => ROLES_PERSONAL.includes(rol))) {
+    return `/solicitudes/${aviso.request_id}`
+  }
+  if (!aviso.request_folio) return null
+  return `/mis-solicitudes/${encodeURIComponent(aviso.request_folio)}`
+}
+
 function formatearFecha(fecha: string): string {
   return new Date(fecha).toLocaleString('es-MX', {
     dateStyle: 'short',
@@ -22,11 +48,19 @@ function formatearFecha(fecha: string): string {
 
 type AvisoItemProps = {
   aviso: Aviso
+  destino: string | null
   onMarcarLeido: (id: string) => void
+  onAbrir: (aviso: Aviso) => void
   deshabilitado: boolean
 }
 
-function AvisoItem({ aviso, onMarcarLeido, deshabilitado }: AvisoItemProps) {
+function AvisoItem({
+  aviso,
+  destino,
+  onMarcarLeido,
+  onAbrir,
+  deshabilitado,
+}: AvisoItemProps) {
   const importante = aviso.importance === 'high'
   return (
     <li
@@ -48,7 +82,17 @@ function AvisoItem({ aviso, onMarcarLeido, deshabilitado }: AvisoItemProps) {
               Importante
             </span>
           )}
-          {aviso.subject}
+          {destino ? (
+            <Link
+              to={destino}
+              onClick={() => onAbrir(aviso)}
+              className="hover:text-[#0f766e] hover:underline"
+            >
+              {aviso.subject}
+            </Link>
+          ) : (
+            aviso.subject
+          )}
         </p>
         {!aviso.is_read && (
           <Button
@@ -75,6 +119,8 @@ function AvisoItem({ aviso, onMarcarLeido, deshabilitado }: AvisoItemProps) {
 /** Campana de avisos del encabezado: contador de no leídos y lista (HU-07.1). */
 export function CampanaAvisos() {
   const [abierta, setAbierta] = useState(false)
+  const { user } = useAuth()
+  const roles = user?.roles ?? []
   const contenedor = useRef<HTMLDivElement>(null)
   const sinLeer = useAvisosSinLeer()
   const avisos = useAvisos(abierta)
@@ -166,7 +212,12 @@ export function CampanaAvisos() {
                   <AvisoItem
                     key={aviso.id}
                     aviso={aviso}
+                    destino={destinoDelAviso(aviso, roles)}
                     onMarcarLeido={(id) => marcarLeido.mutate(id)}
+                    onAbrir={(abierto) => {
+                      if (!abierto.is_read) marcarLeido.mutate(abierto.id)
+                      setAbierta(false)
+                    }}
                     deshabilitado={marcarLeido.isPending}
                   />
                 ))}

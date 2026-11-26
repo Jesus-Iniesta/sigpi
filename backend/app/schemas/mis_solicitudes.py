@@ -42,6 +42,7 @@ class MiSolicitudDetalle(BaseModel):
 
     folio: str
     title: str
+    description: str
     status: RequestStatus
     priority: Priority | None
     category: str | None
@@ -61,6 +62,7 @@ class MiSolicitudDetalle(BaseModel):
         return cls(
             folio=request.folio,
             title=request.title,
+            description=request.description,
             status=request.status,
             priority=request.priority,
             category=request.category.name if request.category else None,

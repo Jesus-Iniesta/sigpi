@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, ShieldQuestion } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import type { RequestDetail, RequestLogEntry } from '@/api/seguimiento'
 import { useAuth } from '@/features/auth/auth-context'
+import { AsignarTecnicoPanel } from '@/features/requests/components/AsignarTecnicoPanel'
 import {
   CHANNEL_LABELS,
   PRIORITY_STYLES,
@@ -239,6 +240,8 @@ export function SolicitudDetallePage() {
       </section>
 
       <ClassificationSection request={request} />
+
+      <AsignarTecnicoPanel requestId={request.id} status={request.status} />
 
       <section
         aria-labelledby="detalle-atencion"

@@ -24,6 +24,7 @@ const getMiSolicitudMock = vi.mocked(getMiSolicitud)
 const DETALLE: MiSolicitudDetalle = {
   folio: 'SIG-0007',
   title: 'No hay conexión a la red',
+  description: 'Sin red en el laboratorio.',
   status: 'in_progress',
   priority: 'P2',
   category: 'Redes',
