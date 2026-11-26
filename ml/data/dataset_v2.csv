@@ -1,0 +1,261 @@
+id,text,category,urgency,impact,source
+SOL-001,Las dos computadoras de la oficina de posgrado se apagaron con olor a quemado y ahí están los expedientes de hoy.,Hardware,3,2,equipo
+SOL-002,"Quiero conocer la velocidad contratada de internet en mi cubículo, es solo curiosidad técnica.",Redes,1,1,equipo
+SOL-003,"A los profesores de tiempo parcial les aparece su nombre incompleto en el directorio, aunque pueden entrar.",Cuentas y accesos,1,2,equipo
+SOL-004,"Se solicita revisar la lista de cuentas de exalumnos, hay algunas que parecen duplicadas.",Cuentas y accesos,1,2,equipo
+SOL-005,"Quisiera cambiar el nombre que aparece en mi correo institucional, no es urgente.",Cuentas y accesos,1,1,equipo
+SOL-006,La plataforma de aulas virtuales no carga para nadie y hoy cierran las entregas de los proyectos finales.,Software,3,3,equipo
+SOL-007,Nadie puede iniciar sesión en la plataforma de aulas virtuales y hay exámenes programados ahora.,Cuentas y accesos,3,3,equipo
+SOL-008,"Se solicita ordenar el cableado del gabinete del laboratorio 3, está desordenado pero todo funciona.",Redes,1,2,equipo
+SOL-009,Se bloqueó el acceso de todo el personal de servicios escolares al sistema y hay trámites en ventanilla.,Cuentas y accesos,3,2,equipo
+SOL-010,El jefe de grupo y la coordinadora no pueden entrar al sistema para firmar las actas que vencen hoy.,Cuentas y accesos,3,2,equipo
+SOL-011,"Quisiera que el reloj de mi computadora muestre el formato de 24 horas, sin prisa.",Software,1,1,equipo
+SOL-012,"El enlace de la biblioteca está caído y no se pueden prestar libros, hay alumnos con fecha de devolución hoy.",Redes,3,2,equipo
+SOL-013,"Mi laptop se conecta al Wi-Fi pero las páginas institucionales no cargan, otras sí.",Redes,2,1,equipo
+SOL-014,Excel se cierra solo cada vez que abro el archivo de nómina y debo enviarlo hoy a recursos humanos.,Software,3,1,equipo
+SOL-015,La cámara web de mi computadora no se detecta y la necesito para mis asesorías virtuales de la semana.,Hardware,2,1,equipo
+SOL-016,Mi computadora no obtiene dirección IP y debo conectarme ya a la defensa de tesis virtual.,Redes,3,1,equipo
+SOL-017,Mi equipo muestra «sin acceso a internet» justo cuando estoy por empezar mi clase en línea.,Redes,3,1,equipo
+SOL-018,El inicio de sesión único falla de forma intermitente para muchos alumnos de la facultad.,Cuentas y accesos,2,3,equipo
+SOL-019,"Hay un error de ortografía en el mensaje de bienvenida del portal de servicios, lo vemos todos los usuarios.",Software,1,3,equipo
+SOL-020,"El portal cautivo de la red de alumnos muestra el logotipo viejo de la facultad, aunque conecta bien.",Redes,1,3,equipo
+SOL-021,Las bocinas de todas las aulas del edificio C tienen ruido de fondo; no impide dar clase pero es molesto.,Hardware,1,3,equipo
+SOL-022,La red inalámbrica del aula magna no conecta y la conferencia con invitados externos empieza en 20 minutos.,Redes,3,2,equipo
+SOL-023,El correo de bienvenida a los alumnos nuevos llega con un enlace al manual viejo.,Cuentas y accesos,1,3,equipo
+SOL-024,Los alumnos de primer semestre no pueden activar su cuenta institucional con la liga que se les envió.,Cuentas y accesos,2,3,equipo
+SOL-025,"Varias computadoras del laboratorio 2 se reinician solas cada pocos minutos, afecta a los grupos de la tarde.",Hardware,2,3,equipo
+SOL-026,El proyector del aula B-204 no enciende y la clase de las 11:00 ya empezó con 30 alumnos.,Hardware,3,2,equipo
+SOL-027,La red de los laboratorios de cómputo pierde conexión a internet cada media hora y afecta todas las clases de la tarde.,Redes,2,3,equipo
+SOL-028,La VPN me desconecta a cada rato cuando trabajo desde casa y pierdo mis sesiones remotas.,Redes,2,1,equipo
+SOL-029,Se fue la energía en el laboratorio de redes y los equipos no encienden aunque regresó la luz; hay prácticas programadas.,Hardware,3,3,equipo
+SOL-030,Nadie en el piso 2 del edificio de posgrado puede acceder a las carpetas compartidas desde ayer.,Redes,2,2,equipo
+SOL-031,"Pido revisar el ventilador de mi equipo, hace un zumbido leve pero todo funciona normal.",Hardware,1,1,equipo
+SOL-032,El correo en el navegador no me deja adjuntar el acta firmada y debo enviarla a la coordinación en 30 minutos.,Software,3,1,equipo
+SOL-033,Solicito instalar la aplicación para editar PDF en mi computadora cuando haya oportunidad.,Software,1,1,equipo
+SOL-034,El software del laboratorio de química no abre en dos de las computadoras que usamos para las prácticas de mañana.,Software,2,2,equipo
+SOL-035,"En la sala de maestros la señal inalámbrica es débil solo en una esquina, pero funciona.",Redes,1,2,equipo
+SOL-036,En el departamento de finanzas no abre la aplicación de pagos y hoy se depositan los honorarios del personal.,Software,3,2,equipo
+SOL-037,Las videollamadas se cortan constantemente en todos los pisos del edificio B desde el lunes.,Redes,2,3,equipo
+SOL-038,"Me gustaría que instalen un tema oscuro en el editor de texto de mi computadora, es solo preferencia.",Software,1,1,equipo
+SOL-039,No hay internet en todo el edificio de ingeniería desde hace una hora y se están aplicando exámenes en línea.,Redes,3,3,equipo
+SOL-040,"El portal institucional muestra algunos textos con acentos mal codificados en varias secciones, aunque se entiende.",Software,1,3,equipo
+SOL-041,El sistema de evaluación docente se cae cada vez que lo intentamos usar y el periodo de captura cierra hoy.,Software,3,2,equipo
+SOL-042,Las computadoras del aula 202 tienen instaladas dos versiones distintas del compilador y los alumnos se confunden.,Software,2,2,equipo
+SOL-043,"Mi impresora de red ya no aparece en mi computadora, aunque el resto de equipos sí la ven.",Redes,2,1,equipo
+SOL-044,"Se derramó café sobre el teclado de mi laptop y ya no enciende, tengo calificaciones por capturar hoy.",Hardware,3,1,equipo
+SOL-045,"El Wi-Fi de mi cubículo se corta cada pocos minutos, puedo trabajar usando datos de mi celular.",Redes,2,1,equipo
+SOL-046,El internet del laboratorio de cómputo 2 está muy lento desde la mañana y los alumnos no pueden descargar sus prácticas.,Redes,2,2,equipo
+SOL-047,Los discos duros de las computadoras del laboratorio de diseño están casi llenos y los programas van muy lentos.,Hardware,2,3,equipo
+SOL-048,AutoCAD se congela al guardar archivos grandes y he perdido avances dos veces esta semana.,Software,2,1,equipo
+SOL-049,Mi usuario fue desactivado por error y debo registrar el acta final del grupo hoy.,Cuentas y accesos,3,1,equipo
+SOL-050,Me aparece «cuenta suspendida» al intentar entrar al sistema de calificaciones y el cierre es hoy.,Cuentas y accesos,3,1,equipo
+SOL-051,El mouse de la computadora compartida de la sala de profesores se atora de vez en cuando.,Hardware,1,2,equipo
+SOL-052,"Dos monitores del cubículo de profesores tienen manchas en la pantalla, se ve pero se puede trabajar.",Hardware,1,2,equipo
+SOL-053,Un virus bloqueó los archivos de varias computadoras del edificio administrativo y aparece un mensaje pidiendo dinero.,Software,3,3,equipo
+SOL-054,Mi cuenta institucional está bloqueada y tengo que subir calificaciones antes de las 14:00.,Cuentas y accesos,3,1,equipo
+SOL-055,El aire acondicionado del cuarto de comunicaciones hace mucho ruido y la temperatura va subiendo.,Hardware,2,3,equipo
+SOL-056,El sistema de reservación de salas falla y hay tres reuniones de academia por comenzar sin sala asignada.,Software,3,2,equipo
+SOL-057,"No puedo acceder a la carpeta de mi proyecto de tesis, dice que no tengo permisos desde el martes.",Cuentas y accesos,2,1,equipo
+SOL-058,"Teams no me deja entrar a la reunión de tesis que empieza en diez minutos, dice que mi versión no es compatible.",Software,3,1,equipo
+SOL-059,Mi computadora no arranca y tengo que entregar hoy el reporte al subdirector; solo muestra pantalla negra.,Hardware,3,1,equipo
+SOL-060,"Dos docentes cambiaron de área y todavía conservan permisos de la anterior, hay que actualizarlos.",Cuentas y accesos,2,2,equipo
+SOL-061,No puedo entrar por VPN al servidor de la tesis y mi revisión es hoy en una hora.,Redes,3,1,equipo
+SOL-062,El puerto de red de la oficina de la coordinación no da conexión a los dos equipos conectados a él.,Redes,2,2,equipo
+SOL-063,"La versión de Python de las computadoras del laboratorio 1 es antigua, ojalá la actualicen antes del próximo semestre.",Software,1,2,equipo
+SOL-064,MATLAB me pide activar la licencia cada vez que lo abro y pierdo tiempo antes de cada clase.,Software,2,1,equipo
+SOL-065,"Después de la actualización de anoche, el antivirus de las computadoras administrativas vuelve muy lento todo el sistema.",Software,2,3,equipo
+SOL-066,"La batería de mi laptop institucional dura solo 20 minutos, necesito trabajar conectada.",Hardware,2,1,equipo
+SOL-067,El cable de red del cubículo de investigación está muy tirante y conviene reacomodarlo.,Redes,1,2,equipo
+SOL-068,El proyector de la sala de usos múltiples falla justo antes del evento de bienvenida con 200 asistentes.,Hardware,3,3,equipo
+SOL-069,La hoja de cálculo compartida de horarios tarda en abrir y a veces no guarda los cambios de nadie.,Software,2,2,equipo
+SOL-070,La impresora de la coordinación atasca el papel cada vez que imprimimos y somos seis personas que la usamos.,Hardware,2,2,equipo
+SOL-071,"Mi navegador muestra cada rato un aviso de actualización que interrumpe mi trabajo, pero puedo seguir.",Software,2,1,equipo
+SOL-072,"El lector de PDF de la sala de profesores abre los archivos con una fuente extraña, aunque se pueden leer.",Software,1,2,equipo
+SOL-073,"El sistema de inscripciones en línea no responde y miles de alumnos intentan reinscribirse hoy, último día.",Software,3,3,equipo
+SOL-074,"Se rompió el conector del cargador de mi laptop, me quedo sin batería en una hora y tengo videollamada.",Hardware,3,1,equipo
+SOL-075,La biblioteca digital muestra errores intermitentes al descargar artículos para todos los alumnos de posgrado.,Software,2,3,equipo
+SOL-076,Solicito un alias de correo adicional para recibir mensajes de mi línea de investigación.,Cuentas y accesos,1,1,equipo
+SOL-077,"Necesito acceso de escritura a la carpeta del proyecto para mi equipo de cuatro personas, la entrega es la próxima semana.",Cuentas y accesos,2,2,equipo
+SOL-078,Hoy dieron de baja por error las cuentas de los instructores de un curso y las clases ya empezaron.,Cuentas y accesos,3,2,equipo
+SOL-079,No me llega el código de verificación en dos pasos y no puedo entrar a mi cuenta desde ayer.,Cuentas y accesos,2,1,equipo
+SOL-080,Las dos computadoras de la ventanilla de atención a alumnos no encienden y hay fila de gente esperando.,Hardware,3,2,equipo
+SOL-081,El teléfono IP de la oficina de la dirección no tiene tono y solo lo usamos para llamadas internas importantes.,Redes,2,2,equipo
+SOL-082,El programa de captura del servicio social no guarda los datos de los alumnos de mi grupo desde el lunes.,Software,2,2,equipo
+SOL-083,"Mi foto de perfil institucional salió con otro nombre, favor de corregir cuando puedan.",Cuentas y accesos,1,1,equipo
+SOL-084,"El pizarrón interactivo del aula 105 no responde al tacto, usamos plumón mientras tanto.",Hardware,2,2,equipo
+SOL-085,Se apagaron todos los equipos del laboratorio de cómputo 3 al mismo tiempo y hay un examen en curso.,Hardware,3,3,equipo
+SOL-086,El nuevo coordinador del laboratorio necesita permisos de administrador sobre las reservas.,Cuentas y accesos,2,2,equipo
+SOL-087,"Varias cuentas de profesores enviaron correos falsos de phishing, hay que bloquearlas hoy mismo.",Cuentas y accesos,3,3,equipo
+SOL-088,Pido que se agregue la opción de exportar a CSV en el reporte de solicitudes cuando sea posible.,Software,1,2,equipo
+SOL-089,Los permisos del grupo de docentes de ingeniería no se aplican y no ven el material del curso.,Cuentas y accesos,2,3,equipo
+SOL-090,La aplicación de asistencia con código QR se traba en todos los salones durante la primera hora de clases.,Software,2,3,equipo
+SOL-091,"Los permisos de la carpeta compartida del laboratorio están desordenados, aunque todos pueden trabajar.",Cuentas y accesos,1,2,equipo
+SOL-092,El Wi-Fi de la sala de juntas está caído y en media hora llegan los evaluadores de acreditación.,Redes,3,2,equipo
+SOL-093,Los puntos de acceso inalámbrico del edificio C se reinician solos varias veces al día.,Redes,2,3,equipo
+SOL-094,Olvidé mi contraseña del correo institucional y no recibo el mensaje de recuperación.,Cuentas y accesos,2,1,equipo
+SOL-095,Mi disco duro externo institucional no es reconocido y ahí guardo los materiales de la semana.,Hardware,2,1,equipo
+SOL-096,Pido que me habiliten acceso a la red inalámbrica en mi segundo dispositivo cuando puedan.,Redes,1,1,equipo
+SOL-097,"Alguien intentó entrar a mi cuenta y ahora no puedo ingresar, necesito recuperarla ya para cerrar un trámite.",Cuentas y accesos,3,1,equipo
+SOL-098,Me gustaría que la contraseña del Wi-Fi del taller sea más fácil de recordar.,Redes,1,1,equipo
+SOL-099,"Quisiera saber cuál es el nombre de la red para visitantes, no tengo prisa.",Redes,1,1,equipo
+SOL-100,El no-break de la oficina del DTIC suena con alarma continua y los equipos se están apagando.,Hardware,3,2,equipo
+SOL-101,"Las etiquetas de inventario de los equipos del laboratorio 4 están ilegibles, conviene reponerlas.",Hardware,1,2,equipo
+SOL-102,"Mi contraseña expiró y el sistema no me deja cambiarla, marca error al guardar.",Cuentas y accesos,2,1,equipo
+SOL-103,El texto del aviso de privacidad al iniciar sesión tiene un error tipográfico y lo ven todos los usuarios.,Cuentas y accesos,1,3,equipo
+SOL-104,"Se me despegó una pata de goma del mouse, no es urgente pero lo reporto.",Hardware,1,1,equipo
+SOL-105,"No sé cómo cambiar el idioma de la interfaz de mi programa de diseño, ¿me pueden orientar?",Software,1,1,equipo
+SOL-106,El conmutador principal del edificio A dejó de funcionar y toda la facultad está sin red y sin telefonía IP.,Redes,3,3,equipo
+SOL-107,Quiero solicitar un cambio de mouse inalámbrico porque el actual es muy pequeño para mi mano.,Hardware,1,1,equipo
+SOL-108,Se cayó la red en el departamento de servicios escolares y no podemos atender trámites con los alumnos formados.,Redes,3,2,equipo
+SOL-109,¿Cómo puedo actualizar el número de teléfono asociado a mi cuenta? Solo para tenerlo al día.,Cuentas y accesos,1,1,equipo
+SOL-110,"Un corte de fibra dejó sin conexión a toda la facultad, incluidas aulas con evaluaciones en línea.",Redes,3,3,equipo
+SOL-111,El escáner de la oficina de control escolar no es reconocido por ninguna computadora desde ayer.,Hardware,2,2,equipo
+SOL-112,El servidor de autenticación no responde y nadie en la facultad puede iniciar sesión en ningún sistema.,Cuentas y accesos,3,3,equipo
+SOL-113,"El monitor de mi escritorio se ve un poco amarillento, quisiera que lo revisen cuando puedan.",Hardware,1,1,equipo
+SOL-114,"Las computadoras de la biblioteca digital tardan más de cinco minutos en iniciar, afecta a quienes consultan por turnos.",Hardware,2,2,equipo
+SOL-115,El sistema de control escolar marca error al capturar calificaciones y la fecha límite de actas es hoy a las 15:00.,Software,3,2,equipo
+SOL-116,"El software de simulación de circuitos marca licencia vencida en los equipos del laboratorio de electrónica, la práctica es la próxima semana.",Software,2,2,equipo
+SOL-117,Los cinco becarios nuevos del laboratorio aún no tienen cuenta y no pueden usar los equipos.,Cuentas y accesos,2,2,equipo
+SOL-118,"El teclado de mi equipo tiene varias teclas que no responden, puedo trabajar con uno externo prestado.",Hardware,2,1,equipo
+SOL-119,"Sería bueno reponer los cables HDMI de tres aulas del edificio A, hoy los docentes comparten uno.",Hardware,1,2,equipo
+SOL-120,"La señal del Wi-Fi en el patio central es débil, ojalá se pueda mejorar para los estudiantes.",Redes,1,3,equipo
+SOL-121,"Me registré con un correo personal por error en la plataforma de cursos, ¿lo pueden cambiar al institucional?",Cuentas y accesos,1,1,equipo
+SOL-122,Me interesa saber si puedo conectar mi tablet personal a la red de personal o solo se permite la laptop,Redes,1,1,equipo
+SOL-123,"Sería útil poder actualizar el correo de recuperación desde el portal, ahora todos tienen que venir en persona",Cuentas y accesos,1,3,equipo
+SOL-124,"mi laptop se calentó muchísimo y se apagó sola, ya no quiere volver a encender y en la tarde presento mi avance de tesis",Hardware,3,1,equipo
+SOL-125,"Me gustaría aprender a usar las macros de Excel, ¿hay algún tutorial o curso que me recomienden?",Software,1,1,equipo
+SOL-126,"Pedimos un segundo monitor para el área de diseño gráfico, entre los cuatro compartimos uno",Hardware,1,2,equipo
+SOL-127,"Se cayó el internet en toda la facultad, ni el wifi ni los equipos con cable tienen salida",Redes,3,3,equipo
+SOL-128,"No me carga ninguna videollamada desde que me cambié al cubículo del fondo, lo demás sí carga pero lento",Redes,2,1,equipo
+SOL-129,quisiera que el navegador abriera directo la pagina de la universidad al iniciar,Software,1,1,equipo
+SOL-130,A muchos alumnos de nuevo ingreso les llega el usuario pero la contraseña temporal no funciona,Cuentas y accesos,2,3,equipo
+SOL-131,"El mouse de mi lugar se traba a cada rato, el puntero se queda pegado en la esquina de la pantalla",Hardware,2,1,equipo
+SOL-132,"mi usuario aparece con el nombre de otra persona en el sistema de asistencia, creo que nos cruzaron los datos",Cuentas y accesos,2,1,equipo
+SOL-133,Mi equipo no sale a internet desde el edificio y tengo que mandar la declaración al SAT hoy antes de que cierre,Redes,3,1,equipo
+SOL-134,"El usuario compartido de la caja quedó bloqueado y no se pueden cobrar los trámites, hay fila",Cuentas y accesos,3,2,equipo
+SOL-135,"Cuando un alumno cambia de carrera, su perfil conserva la carrera anterior por varias semanas",Cuentas y accesos,1,3,equipo
+SOL-136,"Quiero saber si hay restricción para descargar archivos grandes desde la oficina, para planear unas descargas",Redes,1,1,equipo
+SOL-137,Me cambié de departamento y sigo viendo las carpetas del anterior pero no las del nuevo,Cuentas y accesos,2,1,equipo
+SOL-138,"Nos sobra un CPU viejo en el cubículo de investigación, ¿lo pueden recoger para darlo de baja?",Hardware,1,2,equipo
+SOL-139,"Se me cayó la laptop de la mesa y la pantalla quedó estrellada, no se ve nada y en una hora doy clase",Hardware,3,1,equipo
+SOL-140,"el navegador se cierra cada vez que intento abrir el examen en el aula virtual, ya lo reinstalé y nada, cierra en 40 min",Software,3,1,equipo
+SOL-141,La copiadora del 2do piso saca todas las copias con una raya negra en medio y la usa todo el departamento,Hardware,2,2,equipo
+SOL-142,La extensión telefónica IP de mi oficina se escucha entrecortada y a veces se corta la llamada,Redes,2,1,equipo
+SOL-143,El acceso con credencial a los laboratorios no reconoce a los alumnos de reingreso de este semestre,Cuentas y accesos,2,3,equipo
+SOL-144,Me salen anuncios raros y ventanas emergentes en el navegador desde que instalé un convertidor de videos,Software,2,1,equipo
+SOL-145,Las cámaras de vigilancia del estacionamiento perdieron enlace con el monitor de la caseta desde hace una hora,Redes,3,2,equipo
+SOL-146,El formulario de evaluación docente tiene una pregunta repetida y lo contestan todos los alumnos,Software,1,3,equipo
+SOL-147,El sistema de inscripciones se queda en blanco al dar clic en guardar carga y hoy es el último día de reinscripción,Software,3,3,equipo
+SOL-148,"En la sala de juntas el cable HDMI ya falla, hay que estarlo moviendo para que salga imagen en la tele",Hardware,2,2,equipo
+SOL-149,"Pedimos dar de baja los usuarios de los prestadores de servicio social que ya terminaron, siguen activos",Cuentas y accesos,1,2,equipo
+SOL-150,"Desde la actualización de anoche, el sistema de nómina muestra mal los acentos en todos los recibos",Software,2,3,equipo
+SOL-151,"La tecla Enter de mi teclado se queda hundida y escribe doble, me esta volviendo loco",Hardware,2,1,equipo
+SOL-152,Varios profesores reportan que el sistema los saca a cada rato y les pide volver a iniciar sesión,Cuentas y accesos,2,3,equipo
+SOL-153,"En la sala de lectura de la biblioteca la señal está muy débil, los alumnos se tienen que sentar junto a la ventana",Redes,2,2,equipo
+SOL-154,en la sala de juicios orales no hay internet y la audiencia simulada se transmite en vivo en media hora,Redes,3,2,equipo
+SOL-155,"El programa de inventario de la biblioteca no imprime las etiquetas con codigo de barras, las exporta descuadradas",Software,2,2,equipo
+SOL-156,El portal de pagos manda error 500 a todos los que intentan pagar la colegiatura y hoy es la fecha límite,Software,3,3,equipo
+SOL-157,Se vencieron las credenciales de acceso de todos los alumnos de la facultad a la biblioteca digital en plena semana de exámenes,Cuentas y accesos,3,3,equipo
+SOL-158,Me bloquearon por intentar varias veces y estoy a media aplicación de examen en el aula virtual,Cuentas y accesos,3,1,equipo
+SOL-159,Me pueden cambiar el teclado? le faltan dos teclas pero me las arreglo con el otro,Hardware,1,1,equipo
+SOL-160,Los perfiles de los profesores de asignatura se desactivan cada fin de semestre y tardan semanas en reactivarse,Cuentas y accesos,2,3,equipo
+SOL-161,"No me llega el correo para restablecer la contraseña del sistema de bibliotecas, ya revisé en spam",Cuentas y accesos,2,1,equipo
+SOL-162,"Zoom se me queda congelado en conectando audio, ya probé reiniciar la compu y sigue igual, tengo asesoría mañana",Software,2,1,equipo
+SOL-163,"Los proyectores del edificio B se apagan solos a los 20 minutos de clase, ya van varios profes que se quejan",Hardware,2,3,equipo
+SOL-164,Al personal de intendencia del turno vespertino le aparece usuario deshabilitado cuando quieren checar en el sistema,Cuentas y accesos,2,2,equipo
+SOL-165,"Seria bueno actualizar el antivirus de las computadoras de la sala de maestros, todavía tienen la versión anterior",Software,1,2,equipo
+SOL-166,"olvide mi contraseña del correo y el código de recuperación me llega a un celular que ya no tengo, necesito mandar documentos hoy",Cuentas y accesos,3,1,equipo
+SOL-167,El sistema de citas de servicios escolares muestra horarios que ya están ocupados y varios alumnos llegan y no hay lugar,Software,2,3,equipo
+SOL-168,"La red de invitados pide aceptar los términos cada vez que te conectas, sería bueno que lo recordara",Redes,1,3,equipo
+SOL-169,"¿Pueden poner un nodo más en mi oficina? quiero conectar la impresora por cable, de momento uso el inalámbrico",Redes,1,1,equipo
+SOL-170,¿Cada cuánto tengo que cambiar mi contraseña? me llegó un aviso y no sé si es real o es fraude,Cuentas y accesos,1,1,equipo
+SOL-171,"En el laboratorio de electrónica hay cables de red tirados en el piso, todavía funcionan pero alguien se va a tropezar",Redes,1,2,equipo
+SOL-172,"La página de la facultad no se ve bien en celular, el menú se encima con el texto",Software,1,3,equipo
+SOL-173,No me reconoce la memoria USB en ninguno de los puertos y ahi traigo la presentacion del examen de grado de hoy,Hardware,3,1,equipo
+SOL-174,Me pueden pasar la clave del wifi de la sala de maestros? la que tengo ya no jala desde el lunes,Redes,2,1,equipo
+SOL-175,En la app de la facultad el calendario sigue mostrando los días festivos del año pasado,Software,1,3,equipo
+SOL-176,"El sistema de control escolar marca error al generar las boletas en PDF, por ahora las sacamos una por una",Software,2,2,equipo
+SOL-177,"En el aula A-102 el cañon se ve con una franja verde, se alcanza a leer pero cansa la vista",Hardware,2,2,equipo
+SOL-178,La plataforma de cursos tarda muchísimo en subir las tareas y a los alumnos les marca error a la mitad,Software,2,3,equipo
+SOL-179,"En el área de compras el internet funciona pero no podemos abrir la página del proveedor, en otras oficinas si abre",Redes,2,2,equipo
+SOL-180,"el pdf de los lineamientos no se abre en mi compu, me dice que necesito otra aplicación para verlo",Software,2,1,equipo
+SOL-181,"Podrian revisar por que el ping a la página de la biblioteca sale alto? es curiosidad, sí carga",Redes,1,1,equipo
+SOL-182,Mi disco duro hace un ruido como de clic clic y la compu está lentísima al abrir cualquier archivo,Hardware,2,1,equipo
+SOL-183,El programa de contabilidad no deja cerrar el mes en el área de finanzas y hoy vence la entrega a auditoría,Software,3,2,equipo
+SOL-184,"No me deja entrar al sistema de control escolar con mi número de empleado, dice que no existe y tengo que capturar calificaciones hoy",Cuentas y accesos,3,1,equipo
+SOL-185,Se cae el wifi en todos los salones del tercer piso a la hora de mayor uso y regresa solo después de un rato,Redes,2,3,equipo
+SOL-186,El SPSS de las compus del lab de estadística se congela cuando abren bases grandes y los alumnos pierden avances,Software,2,2,equipo
+SOL-187,"Quiero cambiar la foto de perfil de mi usuario institucional, la que tengo es de hace años",Cuentas y accesos,1,1,equipo
+SOL-188,"Desde que movieron los escritorios en control escolar, dos computadoras ya no tienen conexión y compartimos datos del celular",Redes,2,2,equipo
+SOL-189,"me pide verificar en dos pasos cada vez que entro, aunque marque recordar este equipo",Cuentas y accesos,2,1,equipo
+SOL-190,Quisiera que los asistentes de investigación del grupo puedan ver el drive compartido pero sin borrar archivos,Cuentas y accesos,1,2,equipo
+SOL-191,"Ningún edificio tiene enlace con el servidor central, los sistemas internos no responden desde ningún lado",Redes,3,3,equipo
+SOL-192,"Se cortó la fibra que llega al campus por la obra de la calle, no hay internet en ninguna dependencia",Redes,3,3,equipo
+SOL-193,La pantalla de ingreso del portal sigue pidiendo matrícula aunque ahora también entran externos con su CURP,Cuentas y accesos,1,3,equipo
+SOL-194,"La red de alumnos no da IP a mucha gente en la cafetería y en la explanada, se conectan pero sin internet",Redes,2,3,equipo
+SOL-195,"Me gustaría tener un alias más corto en el correo, mi nombre es muy largo y me lo escriben mal",Cuentas y accesos,1,1,equipo
+SOL-196,Los jefes de laboratorio no pueden aprobar los préstamos porque el sistema dice que no tienen autorización,Cuentas y accesos,2,2,equipo
+SOL-197,El nombre de la red inalámbrica sigue diciendo el nombre anterior de la universidad,Redes,1,3,equipo
+SOL-198,El inicio de sesión con Google institucional dejó de funcionar en todas las plataformas desde las 8,Cuentas y accesos,3,3,equipo
+SOL-199,"Muchas de las computadoras de la biblioteca tienen el botón de encendido hundido, hay que picarle con una pluma",Hardware,2,3,equipo
+SOL-200,"No hay conexión en todo el laboratorio 5, los equipos dicen cable desconectado y ya empezó la práctica",Redes,3,2,equipo
+SOL-201,"En el laboratorio de diseño quieren que se instale la versión nueva del editor de video, la actual sí funciona",Software,1,2,equipo
+SOL-202,"No puedo entrar a ninguna página, me sale no se puede encontrar el servidor DNS y tengo que subir calificaciones antes de las 12",Redes,3,1,equipo
+SOL-203,La VPN se me desconecta cada media hora cuando trabajo desde casa y tengo que volver a conectarla,Redes,2,1,equipo
+SOL-204,"¿Me pueden instalar el programa de diagramas? el que es gratis, lo quiero para hacer mapas mentales",Software,1,1,equipo
+SOL-205,En servicios médicos nadie puede ver los expedientes desde el cambio de permisos de ayer y hay pacientes esperando,Cuentas y accesos,3,2,equipo
+SOL-206,"la bateria de la laptop que me asignaron dura como 20 min, tengo que andar conectada todo el tiempo",Hardware,2,1,equipo
+SOL-207,Seria posible ampliar la cobertura inalámbrica a la terraza del edificio C? ahí estudian varios grupos,Redes,1,2,equipo
+SOL-208,"No funciona ningun lector de huella de las entradas, nadie puede checar y se esta haciendo una fila enorme",Hardware,3,3,equipo
+SOL-209,El programa de CAD tarda mucho en abrir los planos desde que lo actualizaron y en el taller lo usamos todos,Software,2,2,equipo
+SOL-210,Se borraron las plantillas de examen del sistema de evaluación del departamento de matemáticas y se aplican hoy a las 4,Software,3,2,equipo
+SOL-211,"Varios no-breaks del edificio D pitan todo el día desde el apagón del lunes, ya nadie sabe si están respaldando",Hardware,2,3,equipo
+SOL-212,Mi computadora tarda como diez minutos en arrancar desde que se fue la luz y hace un pitido largo al prender,Hardware,2,1,equipo
+SOL-213,un exalumno dice que todavía puede entrar con mi usuario?? la cambié pero no me deja cerrar las otras sesiones abiertas,Cuentas y accesos,3,1,equipo
+SOL-214,"MATLAB me dice que la licencia expiró, la necesito para correr las simulaciones de la tesis esta semana",Software,2,1,equipo
+SOL-215,"El antivirus encontró una amenaza y me bloqueó la carpeta con mis calificaciones, tengo que subirlas antes de las 2",Software,3,1,equipo
+SOL-216,"El escaner de la coordinacion jala las hojas chuecas y salen cortadas, estamos digitalizando expedientes esta semana",Hardware,2,2,equipo
+SOL-217,"Ninguna máquina del laboratorio de programación abre el compilador, dice que falta un archivo dll y hay examen práctico ahorita",Software,3,2,equipo
+SOL-218,"Se le rompió una patita al soporte de mi monitor y queda chueco, cuando puedan",Hardware,1,1,equipo
+SOL-219,En el lab de cómputo 4 no da imagen ningún monitor de la fila de atrás y el examen departamental empieza a las 10,Hardware,3,2,equipo
+SOL-220,"El firewall está bloqueando la página de revistas científicas para todos los investigadores, por ahora entramos desde casa",Redes,2,3,equipo
+SOL-221,"Los becarios del área de comunicación no tienen permiso para publicar en la página, solo para ver",Cuentas y accesos,2,2,equipo
+SOL-222,"El pizarron interactivo del aula 305 tiene el lápiz descalibrado, hay que tocar un poco a la izquierda de donde quieres",Hardware,1,2,equipo
+SOL-223,"El cargador de mi lap esta pelado del cable cerca del conector, todavia carga pero da miedo usarlo",Hardware,2,1,equipo
+SOL-224,Necesitamos que el correo del área de vinculación lo pueda leer también la nueva secretaria,Cuentas y accesos,1,2,equipo
+SOL-225,"Actualizaron mi office y la barra de arriba se ve diferente, no encuentro nada jaja, ¿se puede dejar como estaba?",Software,1,1,equipo
+SOL-226,En coordinación nos gustaría una plantilla de oficio en Word con el logo nuevo,Software,1,2,equipo
+SOL-227,Los coordinadores de carrera perdieron el rol de autorización en el sistema escolar y hoy cierran las bajas,Cuentas y accesos,3,2,equipo
+SOL-228,¿Hay forma de que me presten unos audífonos con micrófono? los míos ya suenan solo de un lado,Hardware,1,1,equipo
+SOL-229,"Nadie del personal puede entrar al sistema de nómina, dice usuario o contraseña incorrectos aunque estén bien, y hoy se firma",Cuentas y accesos,3,3,equipo
+SOL-230,Mi laptop agarra el wifi de los alumnos en vez del de personal y desde ahí no me abren los sistemas internos,Redes,2,1,equipo
+SOL-231,"no prende mi compu, le pico al boton y nada, ni lucecita. tengo junta en 15 min",Hardware,3,1,equipo
+SOL-232,"Los access point de los pasillos tienen una luz azul muy brillante, en las tardes molesta en los salones",Redes,1,3,equipo
+SOL-233,"Los profesores visitantes del posgrado necesitan acceso temporal a la plataforma, llegan el lunes",Cuentas y accesos,2,2,equipo
+SOL-234,"El internet de todo el campus está lentísimo desde ayer en la tarde, las páginas tardan minutos en cargar",Redes,2,3,equipo
+SOL-235,¿Puedo tener la misma clave para el correo y el sistema escolar? cada uno pide cosas distintas,Cuentas y accesos,1,1,equipo
+SOL-236,Me dieron de alta con el apellido mal escrito y no me encuentran en el directorio para mandarme oficios,Cuentas y accesos,2,1,equipo
+SOL-237,"Mi outlook no sincroniza el calendario con el del celular, me perdí una junta por eso",Software,2,1,equipo
+SOL-238,Se perdieron los cambios del horario en el sistema de planeación y la coordinación tiene que publicarlo hoy a las 6,Software,3,2,equipo
+SOL-239,"Estoy en el congreso remoto y mi conexión se cae cada 2 minutos, me toca exponer en 15",Redes,3,1,equipo
+SOL-240,En el auditorio no hay señal para la transmisión del informe del director que empieza a las 12,Redes,3,2,equipo
+SOL-241,Los equipos del área de posgrado tardan como 5 minutos en abrir las carpetas compartidas del servidor,Redes,2,2,equipo
+SOL-242,"Se metió agua por el techo al laboratorio de electrónica y mojó los equipos de las mesas, hay prácticas toda la mañana",Hardware,3,2,equipo
+SOL-243,"El wifi en mi cubículo se va y viene, cada rato tengo que volver a conectarme",Redes,2,1,equipo
+SOL-244,La impresora de servicios escolares está atascada con papel adentro y hay fila de alumnos esperando sus constancias,Hardware,3,2,equipo
+SOL-245,"El switch del cubículo de investigadores tiene las lucecitas parpadeando en naranja, todo funciona pero se ve raro",Redes,1,2,equipo
+SOL-246,Al exportar las listas de asistencia a Excel se revuelven las columnas y en el depto las acomodamos a mano,Software,2,2,equipo
+SOL-247,"solicito limpieza de mi cpu, tiene mucho polvo por dentro, se ve por la rejilla",Hardware,1,1,equipo
+SOL-248,Me sale pantalla azul con un mensaje de controlador cada vez que abro el programa de facturación y tengo que timbrar hoy,Software,3,1,equipo
+SOL-249,"Las bocinas del auditorio se escuchan un poco bajas en las filas de atrás, para el próximo evento estaría bien revisarlas",Hardware,1,3,equipo
+SOL-250,"El monitor de la sala de maestros parpadea de vez en cuando, no es grave pero lo usamos varios",Hardware,1,2,equipo
+SOL-251,"Las pantallas de información del vestíbulo de los tres edificios tienen pixeles muertos, se ven feas pero sirven",Hardware,1,3,equipo
+SOL-252,"A los nuevos profesores del departamento de física no los han dado de alta y empiezan a dar clase hoy, no pueden entrar a nada",Cuentas y accesos,3,2,equipo
+SOL-253,Las computadoras del aula de idiomas no reconocen las diademas USB y el examen oral es en una hora,Hardware,3,2,equipo
+SOL-254,la impresora de credenciales no jala y hoy es la entrega de credenciales a todos los de primer ingreso,Hardware,3,3,equipo
+SOL-255,"word se me cerró sin guardar y ahora al abrirlo dice que el archivo está dañado, es mi reporte que entrego hoy",Software,3,1,equipo
+SOL-256,Pueden activarme el corrector ortografico en español? lo tengo en ingles y todo me lo subraya en rojo,Software,1,1,equipo
+SOL-257,"La aplicación de asistencia no registra a nadie desde esta mañana, en todas las aulas aparece error al sincronizar",Software,3,3,equipo
+SOL-258,"no tengo internet en mi oficina!! el cable esta conectado y nada, en 10 min tengo videollamada con el comité",Redes,3,1,equipo
+SOL-259,La planta de luz no arrancó en el corte y todos los equipos del edificio de gobierno siguen apagados,Hardware,3,3,equipo
+SOL-260,"La pantalla de mi compu se pone negra unos segundos y luego regresa, me pasa varias veces al día",Hardware,2,1,equipo
