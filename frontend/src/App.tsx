@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '@/features/auth/require-auth'
 import { LoginPage } from '@/features/auth/login-page'
+import { BandejaPage } from '@/features/bandeja/pages/BandejaPage'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { RevisionPage } from '@/features/clasificacion/pages/RevisionPage'
@@ -46,6 +47,7 @@ function App() {
               element={<RegistroAsistidoPage />}
             />
             <Route path="solicitudes/:id" element={<SolicitudDetallePage />} />
+            <Route path="bandeja" element={<BandejaPage />} />
           </Route>
           <Route element={<RequireAuth requiredRoles={reviewRoles} />}>
             <Route path="clasificacion/revision" element={<RevisionPage />} />

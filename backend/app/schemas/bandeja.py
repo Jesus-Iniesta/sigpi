@@ -1,5 +1,6 @@
 """Esquemas de la bandeja de solicitudes asignadas (S5-04, HU-04.6)."""
 
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -15,6 +16,7 @@ class BandejaElemento(BaseModel):
     se enciende cuando ese porcentaje llega al umbral de riesgo (80 % por defecto).
     """
 
+    request_id: uuid.UUID
     folio: str
     titulo: str
     estatus: RequestStatus

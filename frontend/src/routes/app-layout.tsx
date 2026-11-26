@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   FileSearch,
+  Inbox,
   PhoneCall,
   Timer,
   Users,
@@ -52,6 +53,7 @@ const navigation: NavigationItem[] = [
     icon: PhoneCall,
     roles: assistedRoles,
   },
+  { label: 'Mi bandeja', to: '/bandeja', icon: Inbox, roles: assistedRoles },
   {
     label: 'Revisión',
     to: '/clasificacion/revision',
