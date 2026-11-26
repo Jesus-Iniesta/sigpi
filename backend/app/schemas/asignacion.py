@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.asignacion import Propuesta
+from app.domain.asignacion import Propuesta, desglose_desde_texto
 from app.models.enums import RequestStatus
 
 if TYPE_CHECKING:
+    from app.models.request import RequestAssignment
     from app.services.asignacion_service import Asignado
 
 
@@ -76,4 +77,39 @@ class AsignacionRead(BaseModel):
             assigned_at=asignacion.assigned_at,
             unassigned_at=asignacion.unassigned_at,
             request_status=asignado.estado,
+        )
+
+
+class AsignacionVigenteRead(BaseModel):
+    """Técnico asignado a la solicitud y el puntaje con el que se eligió (S5-12).
+
+    `components` sale de `score_breakdown`; queda vacío si la asignación no tiene puntaje
+    (por ejemplo, la que ya existía antes del motor de asignación).
+    """
+
+    id: uuid.UUID
+    request_id: uuid.UUID
+    technician_id: uuid.UUID
+    full_name: str
+    score: float | None
+    score_breakdown: str | None
+    components: list[ComponentePuntaje]
+    is_automatic: bool
+    assigned_at: datetime
+
+    @classmethod
+    def from_model(cls, asignacion: "RequestAssignment") -> "AsignacionVigenteRead":
+        return cls(
+            id=asignacion.id,
+            request_id=asignacion.request_id,
+            technician_id=asignacion.technician_id,
+            full_name=asignacion.technician.full_name,
+            score=asignacion.score,
+            score_breakdown=asignacion.score_breakdown,
+            components=[
+                ComponentePuntaje(concepto=c.concepto, puntos=c.puntos, detalle=c.detalle)
+                for c in desglose_desde_texto(asignacion.score_breakdown)
+            ],
+            is_automatic=asignacion.is_automatic,
+            assigned_at=asignacion.assigned_at,
         )

@@ -96,6 +96,11 @@ class AsignacionService:
         candidatos = [_candidato(t, carga) for t in tecnicos]
         return reglas.proponer(candidatos, request.category_id, _minuto_local(ahora))
 
+    async def vigente(self, request_id: uuid.UUID) -> RequestAssignment | None:
+        """Asignación vigente de la solicitud o `None` si aún no tiene técnico (S5-12)."""
+        await self._solicitud(request_id)
+        return await self._repository.get_vigente(request_id)
+
     async def proponer(
         self, request_id: uuid.UUID, ahora: datetime | None = None
     ) -> list[Propuesta]:

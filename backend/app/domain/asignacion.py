@@ -12,6 +12,7 @@ Los técnicos inactivos no son candidatos. Estas reglas son puras: no consultan 
 de datos ni conocen el ORM.
 """
 
+import re
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -68,6 +69,34 @@ class Propuesta:
     def score_breakdown(self) -> str:
         """Desglose legible, p. ej. «Especialidad +100 (…) · Turno +0 (…) · Carga +8 (…)»."""
         return " · ".join(f"{c.concepto} +{c.puntos} ({c.detalle})" for c in self.desglose)
+
+
+_SEPARADOR_DESGLOSE = " · "
+_COMPONENTE_TEXTO = re.compile(r"^(?P<concepto>.+?) \+(?P<puntos>\d+) \((?P<detalle>.*)\)$")
+
+
+def desglose_desde_texto(texto: str | None) -> tuple[Componente, ...]:
+    """Reconstruye los componentes a partir de `Propuesta.score_breakdown`.
+
+    La asignación guarda el desglose como texto («Especialidad +100 (…) · Turno +0 (…)»).
+    Si el texto está vacío o alguna parte no tiene ese formato, devuelve `()` para que la
+    interfaz muestre el texto tal cual en lugar de un desglose a medias.
+    """
+    if not texto or not texto.strip():
+        return ()
+    componentes: list[Componente] = []
+    for parte in texto.split(_SEPARADOR_DESGLOSE):
+        coincidencia = _COMPONENTE_TEXTO.match(parte.strip())
+        if coincidencia is None:
+            return ()
+        componentes.append(
+            Componente(
+                coincidencia["concepto"],
+                int(coincidencia["puntos"]),
+                coincidencia["detalle"],
+            )
+        )
+    return tuple(componentes)
 
 
 def puede_asignarse(status: RequestStatus) -> bool:

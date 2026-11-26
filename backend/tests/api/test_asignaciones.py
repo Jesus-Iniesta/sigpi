@@ -6,6 +6,8 @@
   avisa `request_assigned` al solicitante y al técnico; todo queda confirmado.
 - Una solicitud que queda en P1 se asigna sola al mejor candidato.
 - Una P1 sin candidatos avisa `p1_unassigned` a los jefes y no cambia de estado.
+- `GET /asignaciones/{id}` (S5-12) devuelve el técnico asignado con el desglose de su
+  puntaje; `null` si no tiene técnico; sin puntaje guardado, sin componentes.
 - Técnico inactivo o solicitud cerrada: 422; técnico inexistente: 404; sin sesión: 401;
   sin permiso: 403.
 """
@@ -473,6 +475,73 @@ def test_sin_permiso_responde_403(cliente):
         f"/asignaciones/{request_id}", json={"technician_id": str(cliente.ids["ana"])}
     )
     assert respuesta.status_code == 403
+
+
+# ------------------------------------------------------- asignación vigente (S5-12)
+
+
+def test_la_asignacion_vigente_trae_el_tecnico_y_el_desglose_de_su_puntaje(cliente):
+    request_id = _crear(cliente, tecnico="beto", status=RequestStatus.CLASSIFIED)
+    agente = cliente.como("support_agent")
+    agente.post(f"/asignaciones/{request_id}", json={"technician_id": str(cliente.ids["ana"])})
+
+    respuesta = agente.get(f"/asignaciones/{request_id}")
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["technician_id"] == str(cliente.ids["ana"])
+    assert cuerpo["full_name"] == "Ana"
+    assert cuerpo["is_automatic"] is False
+    assert [c["concepto"] for c in cuerpo["components"]] == ["Especialidad", "Turno", "Carga"]
+    assert cuerpo["components"][0]["puntos"] == 100
+    assert cuerpo["score"] == sum(c["puntos"] for c in cuerpo["components"])
+    assert cuerpo["score_breakdown"].startswith("Especialidad +100")
+
+
+def test_la_asignacion_vigente_es_la_ultima_tras_reasignar(cliente):
+    request_id = _crear(cliente, tecnico="beto", status=RequestStatus.IN_PROGRESS)
+    agente = cliente.como("support_agent")
+    agente.post(f"/asignaciones/{request_id}", json={"technician_id": str(cliente.ids["carla"])})
+
+    cuerpo = agente.get(f"/asignaciones/{request_id}").json()
+
+    assert cuerpo["full_name"] == "Carla"
+
+
+def test_la_asignacion_sin_puntaje_guardado_no_trae_componentes(cliente):
+    request_id = _crear(cliente, tecnico="beto")
+
+    respuesta = cliente.como("support_agent").get(f"/asignaciones/{request_id}")
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["full_name"] == "Beto"
+    assert cuerpo["score"] is None
+    assert cuerpo["score_breakdown"] is None
+    assert cuerpo["components"] == []
+
+
+def test_una_solicitud_sin_tecnico_responde_null(cliente):
+    request_id = _crear(cliente)
+
+    respuesta = cliente.como("support_agent").get(f"/asignaciones/{request_id}")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() is None
+
+
+def test_consultar_la_asignacion_de_una_solicitud_inexistente_responde_404(cliente):
+    respuesta = cliente.como("support_agent").get(f"/asignaciones/{uuid.uuid4()}")
+
+    assert respuesta.status_code == 404
+
+
+def test_consultar_la_asignacion_exige_sesion_y_permiso(cliente):
+    request_id = _crear(cliente, tecnico="beto")
+
+    assert cliente.como(None).get(f"/asignaciones/{request_id}").status_code == 401
+    solicitante = cliente.como("requester", "solicitante")
+    assert solicitante.get(f"/asignaciones/{request_id}").status_code == 403
 
 
 def test_si_el_aviso_falla_no_se_guarda_la_asignacion(entorno, monkeypatch):

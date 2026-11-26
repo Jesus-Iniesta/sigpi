@@ -30,10 +30,6 @@ docker compose exec db psql -U sigpi -c "select id, folio from service_requests;
 
 
 -----
-validar cuenta institucional
-s2-08 servicio de auditoría de cambios
-s2-09 Pruebas de inalterabilidad de la auditoría
-s2-11 (validar que no metan cosas raras en técnicos)
-sla (Salida como un contrato simulado pdf: descripción, acuerdo general con todos los usuarios
-para que no sean valores tan personalizados (revisar) (¿cambiar nombre a tickets (?))
-)
+Administrador: "email": "amartinez@uaemex.mx", "password": "Prueba1234"
+Técnico: "email": "lhernandez@uaemex.mx", "password": " ClaveSegura#2026"
+Usuario normal: "email": "egarcia@uaemex.mx", "password": "ClaveSegura#2026"
