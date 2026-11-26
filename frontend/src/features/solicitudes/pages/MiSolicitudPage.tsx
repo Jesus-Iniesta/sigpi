@@ -184,6 +184,18 @@ function Detalle({ solicitud }: { solicitud: MiSolicitudDetalle }) {
       </section>
 
       <section
+        aria-labelledby="mi-solicitud-descripcion"
+        className="rounded-xl border border-[#dce6e4] bg-white p-6"
+      >
+        <h2 id="mi-solicitud-descripcion" className="text-lg font-bold">
+          Descripción
+        </h2>
+        <p className="mt-4 text-sm whitespace-pre-line text-[#24343d]">
+          {solicitud.description}
+        </p>
+      </section>
+
+      <section
         aria-labelledby="mi-solicitud-linea"
         className="rounded-xl border border-[#dce6e4] bg-white p-6"
       >

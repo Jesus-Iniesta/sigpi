@@ -27,6 +27,7 @@ export type MiSolicitudBitacoraEntrada = {
 export type MiSolicitudDetalle = {
   folio: string
   title: string
+  description: string
   status: RequestStatus
   priority: Priority | null
   category: string | null
