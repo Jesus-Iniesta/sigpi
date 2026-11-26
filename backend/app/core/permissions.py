@@ -12,6 +12,8 @@ class Permission(StrEnum):
     REQUESTS_CLOSE = "requests.close"
     CLASSIFICATION_READ = "classification.read"
     CLASSIFICATION_REVIEW = "classification.review"
+    # S5-06: umbral, estado y reentrenamiento del clasificador; solo `administrator`.
+    CLASSIFICATION_MANAGE = "classification.manage"
     SLA_READ = "sla.read"
     SLA_MANAGE = "sla.manage"
     SLA_CONTRACT_DOWNLOAD = "sla.contract_download"

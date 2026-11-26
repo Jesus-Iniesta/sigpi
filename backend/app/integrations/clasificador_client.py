@@ -383,6 +383,29 @@ class _NaiveBayes:
         clase = max(self.clases, key=lambda c: posteriores[c])
         return clase, posteriores[clase]
 
+    def a_dict(self) -> dict:
+        """Parámetros serializables en JSON (S5-06): las clases van en el mismo orden que
+        sus tablas, así no importa que una etiqueta sea número o texto."""
+        return {
+            "clases": list(self.clases),
+            "log_prior": [self._log_prior[c] for c in self.clases],
+            "log_verosimilitud": [self._log_verosimilitud[c] for c in self.clases],
+            "log_desconocida": [self._log_desconocida[c] for c in self.clases],
+        }
+
+    @classmethod
+    def desde_dict(cls, datos: dict) -> "_NaiveBayes":
+        """Reconstruye el modelo a partir de `a_dict` sin volver a entrenar."""
+        modelo = cls.__new__(cls)
+        modelo.clases = list(datos["clases"])
+        modelo._log_prior = dict(zip(modelo.clases, datos["log_prior"], strict=True))
+        modelo._log_verosimilitud = dict(
+            zip(modelo.clases, datos["log_verosimilitud"], strict=True)
+        )
+        modelo._log_desconocida = dict(zip(modelo.clases, datos["log_desconocida"], strict=True))
+        modelo._vocabulario = {t for tabla in datos["log_verosimilitud"] for t in tabla}
+        return modelo
+
 
 def cargar_ejemplos(ruta: Path) -> list[Ejemplo]:
     """Lee el CSV etiquetado (columnas `text`, `category`, `urgency`, `impact`)."""
@@ -418,7 +441,9 @@ class ClasificadorBayes:
         *,
         artefacto: str | None = None,
         medir_exactitud: bool = True,
+        version: str = VERSION_BAYES,
     ) -> None:
+        self.version = version
         documentos = [tokenizar(e.texto) for e in ejemplos]
         self._categoria = _NaiveBayes(documentos, [e.categoria for e in ejemplos])
         self._urgencia = _NaiveBayes(documentos, [e.urgencia for e in ejemplos])
@@ -428,6 +453,35 @@ class ClasificadorBayes:
         self.exactitud: float | None = (
             validacion_cruzada(ejemplos)["categoria"] if medir_exactitud else None
         )
+
+    def parametros(self) -> dict:
+        """Parámetros entrenados de los tres modelos, serializables en JSON (S5-06)."""
+        return {
+            "categoria": self._categoria.a_dict(),
+            "urgencia": self._urgencia.a_dict(),
+            "impacto": self._impacto.a_dict(),
+        }
+
+    @classmethod
+    def desde_parametros(
+        cls,
+        parametros: dict,
+        *,
+        version: str,
+        exactitud: float | None,
+        entrenado_en: datetime,
+        artefacto: str | None = None,
+    ) -> "ClasificadorBayes":
+        """Modelo guardado en la base (`classifier_models`), listo para predecir."""
+        modelo = cls.__new__(cls)
+        modelo.version = version
+        modelo._categoria = _NaiveBayes.desde_dict(parametros["categoria"])
+        modelo._urgencia = _NaiveBayes.desde_dict(parametros["urgencia"])
+        modelo._impacto = _NaiveBayes.desde_dict(parametros["impacto"])
+        modelo.artefacto = artefacto
+        modelo.exactitud = exactitud
+        modelo.entrenado_en = entrenado_en
+        return modelo
 
     @classmethod
     def desde_csv(cls, ruta: Path, *, artefacto: str | None = None) -> "ClasificadorBayes":
@@ -536,6 +590,16 @@ class ClasificadorCompuesto:
             except Exception as exc:  # noqa: BLE001 - cualquier falla del modelo cae a reglas
                 log_event(logger, "clasificador.prediccion_fallida", error=type(exc).__name__)
         return self._reglas.predecir(texto)
+
+
+def ruta_dataset_mas_reciente() -> Path:
+    """El `dataset_vN.csv` de `ml/data` con la N más alta; si no hay, el configurado."""
+    candidatos = []
+    for ruta in (RAIZ_REPO / "ml" / "data").glob("dataset_v*.csv"):
+        numero = re.fullmatch(r"dataset_v(\d+)\.csv", ruta.name)
+        if numero is not None:
+            candidatos.append((int(numero.group(1)), ruta))
+    return max(candidatos)[1] if candidatos else ruta_dataset()
 
 
 def ruta_dataset() -> Path:
