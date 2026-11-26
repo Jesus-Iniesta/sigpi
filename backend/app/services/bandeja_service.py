@@ -72,6 +72,7 @@ class BandejaService:
     ) -> BandejaElemento:
         porcentaje = porcentaje_consumido(request, ahora)
         return BandejaElemento(
+            request_id=request.id,
             folio=request.folio,
             titulo=request.title,
             estatus=request.status,

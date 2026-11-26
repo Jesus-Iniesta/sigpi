@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '@/features/auth/require-auth'
 import { LoginPage } from '@/features/auth/login-page'
+import { BandejaPage } from '@/features/bandeja/pages/BandejaPage'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { RevisionPage } from '@/features/clasificacion/pages/RevisionPage'
@@ -12,6 +13,7 @@ import { MiSolicitudPage } from '@/features/solicitudes/pages/MiSolicitudPage'
 import { MisSolicitudesPage } from '@/features/solicitudes/pages/MisSolicitudesPage'
 import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
+import { IndicadoresPage } from '@/features/indicadores/pages/IndicadoresPage'
 import { AppLayout } from '@/routes/app-layout'
 
 const staffRoles = ['administrator', 'service_manager', 'support_agent']
@@ -32,6 +34,8 @@ const catalogRoles = [
   'classifier',
   'auditor',
 ]
+// Roles con el permiso reports.read (S5-11).
+const reportsRoles = ['administrator', 'service_manager']
 
 function App() {
   return (
@@ -47,6 +51,7 @@ function App() {
               element={<RegistroAsistidoPage />}
             />
             <Route path="solicitudes/:id" element={<SolicitudDetallePage />} />
+            <Route path="bandeja" element={<BandejaPage />} />
           </Route>
           <Route element={<RequireAuth requiredRoles={reviewRoles} />}>
             <Route path="clasificacion/revision" element={<RevisionPage />} />
@@ -67,6 +72,9 @@ function App() {
           <Route element={<RequireAuth requiredRoles={['administrator']} />}>
             <Route path="usuarios" element={<UsersPage />} />
             <Route path="clasificador" element={<ClasificadorPage />} />
+          </Route>
+          <Route element={<RequireAuth requiredRoles={reportsRoles} />}>
+            <Route path="indicadores" element={<IndicadoresPage />} />
           </Route>
         </Route>
       </Route>
