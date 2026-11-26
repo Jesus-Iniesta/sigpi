@@ -1,5 +1,6 @@
 import {
   Activity,
+  BrainCircuit,
   ClipboardCheck,
   ClipboardList,
   BarChart3,
@@ -70,6 +71,12 @@ const navigation: NavigationItem[] = [
     roles: requesterRoles,
   },
   { label: 'Usuarios', to: '/usuarios', icon: Users, roles: adminRoles },
+  {
+    label: 'Clasificador',
+    to: '/clasificador',
+    icon: BrainCircuit,
+    roles: adminRoles,
+  },
   {
     label: 'Catálogo',
     to: '/catalogo',
