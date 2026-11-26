@@ -2,6 +2,7 @@ import {
   Activity,
   ClipboardCheck,
   ClipboardList,
+  BarChart3,
   BookOpen,
   LayoutDashboard,
   LogOut,
@@ -34,6 +35,8 @@ const catalogRoles = [
   'classifier',
   'auditor',
 ]
+// Roles con el permiso reports.read (S5-11).
+const reportsRoles = ['administrator', 'service_manager']
 
 type NavigationItem = {
   label: string
@@ -73,6 +76,12 @@ const navigation: NavigationItem[] = [
   },
   // Sin filtro de rol: el solicitante descarga aquí el contrato del acuerdo.
   { label: 'Tickets', to: '/sla', icon: Timer },
+  {
+    label: 'Indicadores',
+    to: '/indicadores',
+    icon: BarChart3,
+    roles: reportsRoles,
+  },
 ]
 
 function getInitials(fullName: string): string {

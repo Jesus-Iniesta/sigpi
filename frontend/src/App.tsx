@@ -11,6 +11,7 @@ import { MiSolicitudPage } from '@/features/solicitudes/pages/MiSolicitudPage'
 import { MisSolicitudesPage } from '@/features/solicitudes/pages/MisSolicitudesPage'
 import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
+import { IndicadoresPage } from '@/features/indicadores/pages/IndicadoresPage'
 import { AppLayout } from '@/routes/app-layout'
 
 const staffRoles = ['administrator', 'service_manager', 'support_agent']
@@ -31,6 +32,8 @@ const catalogRoles = [
   'classifier',
   'auditor',
 ]
+// Roles con el permiso reports.read (S5-11).
+const reportsRoles = ['administrator', 'service_manager']
 
 function App() {
   return (
@@ -65,6 +68,9 @@ function App() {
           <Route path="sla" element={<SlaPage />} />
           <Route element={<RequireAuth requiredRoles={['administrator']} />}>
             <Route path="usuarios" element={<UsersPage />} />
+          </Route>
+          <Route element={<RequireAuth requiredRoles={reportsRoles} />}>
+            <Route path="indicadores" element={<IndicadoresPage />} />
           </Route>
         </Route>
       </Route>
