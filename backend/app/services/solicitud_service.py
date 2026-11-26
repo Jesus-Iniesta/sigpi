@@ -6,7 +6,10 @@ resultado, el estatus y la versión se confirman en una sola transacción (regla
 
 El alta avisa al solicitante con `request_registered` (S4-07, HU-07.1) en la misma
 transacción, ya con la categoría, la prioridad y la fecha compromiso que deja la
-clasificación. Si la escritura del aviso falla, la solicitud no se registra."""
+clasificación. Si la escritura del aviso falla, la solicitud no se registra.
+
+Una solicitud que queda en P1 se asigna automáticamente al mejor técnico (S5-03,
+HU-03.3) en cuanto se confirma el alta; si la asignación falla, el alta se conserva."""
 
 import uuid
 
@@ -32,6 +35,7 @@ from app.schemas.request import (
     RequestPage,
     RequestSummary,
 )
+from app.services.asignacion_service import AsignacionService
 from app.services.auditoria_service import AuditoriaService
 from app.services.clasificacion_service import ClasificacionService
 from app.services.notificacion_service import NotificacionService
@@ -80,7 +84,8 @@ class SolicitudService:
     ) -> Request:
         request = await self._register(payload)
         await self._clasificar(request, registered_by_id, conservar_niveles=False)
-        return await self._confirmar_alta(request)
+        request = await self._confirmar_alta(request)
+        return await self._asignar_si_critica(request, registered_by_id)
 
     async def create_assisted_request(
         self, payload: RequestAssistedCreate, registered_by_id: uuid.UUID
@@ -98,7 +103,8 @@ class SolicitudService:
         )
         request = await self._register(payload, log)
         await self._clasificar(request, registered_by_id, conservar_niveles=True)
-        return await self._confirmar_alta(request)
+        request = await self._confirmar_alta(request)
+        return await self._asignar_si_critica(request, registered_by_id)
 
     async def _confirmar_alta(self, request: Request) -> Request:
         """Guarda el aviso de alta y confirma la solicitud, su clasificación y el aviso."""
@@ -108,6 +114,26 @@ class SolicitudService:
         except Exception:
             await self._session.rollback()
             raise
+        await self._session.refresh(request)
+        return request
+
+    async def _asignar_si_critica(self, request: Request, actor_id: uuid.UUID | None) -> Request:
+        """Asigna automáticamente una solicitud P1 recién registrada (S5-03, HU-03.3)."""
+        if request.priority != Priority.P1:
+            return request
+        try:
+            await AsignacionService(
+                self._session, notificaciones=self._notificaciones
+            ).asignar_automaticamente(request.id, actor_id or request.requester_id)
+        except Exception as exc:  # noqa: BLE001 — el alta ya quedó confirmada
+            log_event(
+                logger,
+                "asignacion_automatica_fallida",
+                level="ERROR",
+                folio=request.folio,
+                error=type(exc).__name__,
+                detalle=str(exc),
+            )
         await self._session.refresh(request)
         return request
 

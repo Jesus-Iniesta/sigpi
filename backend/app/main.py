@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routers.asignaciones import router as asignaciones_router
 from app.api.routers.auditoria import router as auditoria_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.bandeja import router as bandeja_router
@@ -67,6 +68,7 @@ app.include_router(sla_router)
 app.include_router(auditoria_router)
 app.include_router(mis_solicitudes_router)
 app.include_router(revision_router)
+app.include_router(asignaciones_router)
 app.include_router(indicadores_router)
 app.include_router(bandeja_router)
 
