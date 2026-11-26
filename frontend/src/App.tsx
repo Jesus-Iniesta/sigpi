@@ -4,6 +4,7 @@ import { LoginPage } from '@/features/auth/login-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { RevisionPage } from '@/features/clasificacion/pages/RevisionPage'
+import { ClasificadorPage } from '@/features/clasificador/pages/ClasificadorPage'
 import { RegistroAsistidoPage } from '@/features/requests/registro-asistido-page'
 import { RequestsPage } from '@/features/requests/requests-page'
 import { SolicitudDetallePage } from '@/features/requests/pages/SolicitudDetallePage'
@@ -65,6 +66,7 @@ function App() {
           <Route path="sla" element={<SlaPage />} />
           <Route element={<RequireAuth requiredRoles={['administrator']} />}>
             <Route path="usuarios" element={<UsersPage />} />
+            <Route path="clasificador" element={<ClasificadorPage />} />
           </Route>
         </Route>
       </Route>
