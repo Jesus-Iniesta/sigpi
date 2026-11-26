@@ -107,7 +107,7 @@ def entorno():
                     service_level_version_id=version.id,
                     folio=folio,
                     title=f"Solicitud {folio}",
-                    description="No hay red.",
+                    description=f"No hay red en {folio}.",
                     physical_location="Edificio B",
                     channel=RequestChannel.PORTAL,
                     status=status,
@@ -241,6 +241,23 @@ def test_la_bitacora_resumida_no_expone_las_notas_internas(cliente) -> None:
     assert respuesta.status_code == 200
     assert NOTA_INTERNA not in respuesta.text
     assert all(set(e) == {"action", "new_status", "created_at"} for e in respuesta.json()["log"])
+
+
+def test_el_detalle_incluye_la_descripcion_de_la_solicitud_propia(cliente) -> None:
+    client, _maker, _ids = cliente
+
+    datos = client.get("/mis-solicitudes/SIG-0001").json()
+
+    assert datos["description"] == "No hay red en SIG-0001."
+
+
+def test_confirmar_devuelve_tambien_la_descripcion(cliente) -> None:
+    client, _maker, _ids = cliente
+
+    respuesta = client.post("/mis-solicitudes/SIG-0002/confirmar", json={})
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["description"] == "No hay red en SIG-0002."
 
 
 def test_el_folio_se_acepta_sin_distinguir_mayusculas(cliente) -> None:

@@ -26,6 +26,7 @@ function buildDetalle(
   return {
     folio: 'SIG-0007',
     title: 'No hay conexión a la red',
+    description: 'Desde ayer no tengo internet en el laboratorio 3.',
     status: 'resolved',
     priority: 'P2',
     category: 'Redes',
@@ -82,6 +83,16 @@ describe('MiSolicitudPage (S4-02)', () => {
     const linea = screen.getByRole('list')
     expect(within(linea).getAllByRole('listitem')).toHaveLength(2)
     expect(within(linea).getByText('Solicitud resuelta')).toBeInTheDocument()
+  })
+
+  it('muestra la descripción de la solicitud (S5-13)', async () => {
+    getMiSolicitudMock.mockResolvedValue(buildDetalle())
+    renderPage()
+
+    const seccion = await screen.findByRole('region', { name: 'Descripción' })
+    expect(seccion).toHaveTextContent(
+      'Desde ayer no tengo internet en el laboratorio 3.',
+    )
   })
 
   it('no ofrece confirmar si la solicitud no está «Resuelta»', async () => {
