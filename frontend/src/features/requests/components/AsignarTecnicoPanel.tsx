@@ -3,15 +3,14 @@ import { useState } from 'react'
 import type { CandidatoAsignacion } from '@/api/asignaciones'
 import type { RequestStatus } from '@/api/seguimiento'
 import { useAuth } from '@/features/auth/auth-context'
+import { puedeAsignar } from '@/features/requests/assign-roles'
+import { PuntajeDesglose } from '@/features/requests/components/PuntajeDesglose'
 import {
   useAsignarTecnico,
   usePropuestaAsignacion,
 } from '@/features/requests/use-asignacion'
 import { Button } from '@/shared/ui/button'
 import { ErrorAlert } from '@/shared/ui/error-alert'
-
-// Roles con el permiso requests.assign (backend/app/core/permissions.py).
-const ASSIGN_ROLES = ['administrator', 'service_manager', 'support_agent']
 
 // Una solicitud resuelta o cerrada ya no se asigna.
 const FINAL_STATUSES: RequestStatus[] = [
@@ -34,8 +33,7 @@ export function AsignarTecnicoPanel({
   status,
 }: AsignarTecnicoPanelProps) {
   const { user } = useAuth()
-  const canAssign =
-    user?.roles.some((role) => ASSIGN_ROLES.includes(role)) ?? false
+  const canAssign = puedeAsignar(user?.roles)
 
   if (!canAssign || FINAL_STATUSES.includes(status)) return null
   return <PanelContent requestId={requestId} />
@@ -214,19 +212,7 @@ function CandidatoItem({
           </Button>
         )}
       </div>
-      {candidato.components.length > 0 && (
-        <ul className="mt-3 space-y-1 text-xs text-[#52616b]">
-          {candidato.components.map((componente) => (
-            <li key={componente.concepto}>
-              <span className="font-semibold text-[#24343d]">
-                {componente.concepto}
-              </span>{' '}
-              ({componente.puntos > 0 ? '+' : ''}
-              {componente.puntos} pts): {componente.detalle}
-            </li>
-          ))}
-        </ul>
-      )}
+      <PuntajeDesglose className="mt-3" componentes={candidato.components} />
     </li>
   )
 }

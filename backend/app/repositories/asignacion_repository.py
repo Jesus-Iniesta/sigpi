@@ -29,6 +29,21 @@ class AsignacionRepository:
         )
         return result.first()
 
+    async def get_vigente(self, request_id: uuid.UUID) -> RequestAssignment | None:
+        """Asignación vigente de la solicitud (`unassigned_at` nulo), con su técnico."""
+        result = await self._session.scalars(
+            select(RequestAssignment)
+            .where(
+                RequestAssignment.request_id == request_id,
+                RequestAssignment.unassigned_at.is_(None),
+            )
+            .options(selectinload(RequestAssignment.technician))
+            .order_by(RequestAssignment.assigned_at.desc())
+            .limit(1)
+            .execution_options(populate_existing=True)
+        )
+        return result.first()
+
     async def get_user(self, user_id: uuid.UUID) -> User | None:
         return await self._session.get(User, user_id)
 
