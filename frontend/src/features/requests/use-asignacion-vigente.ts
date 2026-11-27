@@ -7,8 +7,8 @@ import { getAsignacionVigente } from '@/api/asignaciones'
  * esa clave) se vuelve a consultar sola.
  */
 export function useAsignacionVigente(requestId: string) {
-    return useQuery({
-        queryKey: ['solicitudes', requestId, 'asignacion'],
-        queryFn: () => getAsignacionVigente(requestId),
-    })
+  return useQuery({
+    queryKey: ['solicitudes', requestId, 'asignacion'],
+    queryFn: () => getAsignacionVigente(requestId),
+  })
 }
