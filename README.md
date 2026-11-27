@@ -201,6 +201,7 @@ SIGPI/
 - [Plan de implementación](backend/docs/implementation-plan.md)
 - [Matriz de permisos](backend/docs/matriz_permisos.md)
 - [Guía del backend](backend/README.md)
+- [Guía de despliegue](DEPLOY.md)
 
 ## Convenciones importantes
 
