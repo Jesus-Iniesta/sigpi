@@ -69,3 +69,47 @@ export function getRequestDetail(requestId: string): Promise<RequestDetail> {
 export function getRequestLog(requestId: string): Promise<RequestLogEntry[]> {
   return apiFetch<RequestLogEntry[]>(`/solicitudes/${requestId}/bitacora`)
 }
+
+/* Acciones de atención (HU-04.1). Todas devuelven la solicitud actualizada. */
+
+/** Quita los textos opcionales vacíos para no enviarlos al backend. */
+function optionalText(value: string | null | undefined): string | undefined {
+  return value?.trim() ? value : undefined
+}
+
+export function iniciarAtencion(requestId: string): Promise<RequestDetail> {
+  return apiFetch<RequestDetail>(`/solicitudes/${requestId}/iniciar`, {
+    method: 'POST',
+  })
+}
+
+export function registrarDiagnostico(
+  requestId: string,
+  diagnosis: string,
+): Promise<RequestDetail> {
+  return apiFetch<RequestDetail>(`/solicitudes/${requestId}/diagnostico`, {
+    method: 'POST',
+    body: JSON.stringify({ diagnosis }),
+  })
+}
+
+export function resolverSolicitud(
+  requestId: string,
+  solution: string,
+  diagnosis?: string | null,
+): Promise<RequestDetail> {
+  return apiFetch<RequestDetail>(`/solicitudes/${requestId}/resolver`, {
+    method: 'POST',
+    body: JSON.stringify({ solution, diagnosis: optionalText(diagnosis) }),
+  })
+}
+
+export function confirmarCierre(
+  requestId: string,
+  notes?: string | null,
+): Promise<RequestDetail> {
+  return apiFetch<RequestDetail>(`/solicitudes/${requestId}/confirmar`, {
+    method: 'POST',
+    body: JSON.stringify({ notes: optionalText(notes) }),
+  })
+}

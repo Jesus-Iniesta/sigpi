@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, ShieldQuestion } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import type { RequestDetail, RequestLogEntry } from '@/api/seguimiento'
 import { useAuth } from '@/features/auth/auth-context'
+import { AccionesAtencionPanel } from '@/features/requests/components/AccionesAtencionPanel'
 import { AsignarTecnicoPanel } from '@/features/requests/components/AsignarTecnicoPanel'
 import { TecnicoAsignadoDesglose } from '@/features/requests/components/TecnicoAsignadoDesglose'
 import {
@@ -245,6 +246,8 @@ export function SolicitudDetallePage() {
       <TecnicoAsignadoDesglose requestId={request.id} />
 
       <AsignarTecnicoPanel requestId={request.id} status={request.status} />
+
+      <AccionesAtencionPanel request={request} />
 
       <section
         aria-labelledby="detalle-atencion"
