@@ -14,6 +14,7 @@ import { MisSolicitudesPage } from '@/features/solicitudes/pages/MisSolicitudesP
 import { SlaPage } from '@/features/sla/sla-page'
 import { UsersPage } from '@/features/users/users-page'
 import { IndicadoresPage } from '@/features/indicadores/pages/IndicadoresPage'
+import { AuditoriaPage } from '@/features/auditoria/pages/AuditoriaPage'
 import { AppLayout } from '@/routes/app-layout'
 
 const staffRoles = ['administrator', 'service_manager', 'support_agent']
@@ -36,6 +37,8 @@ const catalogRoles = [
 ]
 // Roles con el permiso reports.read (S5-11).
 const reportsRoles = ['administrator', 'service_manager']
+// Roles con el permiso audit.read (S5-21).
+const auditRoles = ['administrator', 'auditor']
 
 function App() {
   return (
@@ -75,6 +78,9 @@ function App() {
           </Route>
           <Route element={<RequireAuth requiredRoles={reportsRoles} />}>
             <Route path="indicadores" element={<IndicadoresPage />} />
+          </Route>
+          <Route element={<RequireAuth requiredRoles={auditRoles} />}>
+            <Route path="auditoria" element={<AuditoriaPage />} />
           </Route>
         </Route>
       </Route>
