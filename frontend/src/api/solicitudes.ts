@@ -44,6 +44,13 @@ export function putRequestOnHold(
   })
 }
 
+/** Reanuda una solicitud en espera; vuelve a «En atención» (HU-04.2). */
+export function reanudarSolicitud(requestId: string): Promise<Request> {
+  return apiFetch<Request>(`/solicitudes/${requestId}/reanudar`, {
+    method: 'POST',
+  })
+}
+
 /*
  * Listado de solicitudes (`GET /solicitudes`). Tipos escritos a mano porque `openapi.ts`
  * todavía no incluye este endpoint; se pueden reemplazar al regenerarlo.
