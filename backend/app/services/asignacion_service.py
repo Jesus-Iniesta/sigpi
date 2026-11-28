@@ -4,8 +4,10 @@
 * `asignar` cierra la asignación vigente, crea la nueva, pasa la solicitud a «Asignada»
   si estaba «Registrada» o «Clasificada», escribe la bitácora y avisa
   `request_assigned` al solicitante y al técnico, todo en una transacción.
-* `asignar_automaticamente` toma al mejor candidato. Si no hay ninguno y la solicitud es
-  P1, avisa `p1_unassigned` a los jefes de servicio y deja la solicitud como estaba.
+* `asignar_automaticamente` toma al mejor candidato con capacidad: en P1 se ignora la carga
+  máxima (S5-14); en las demás, los técnicos en su tope se descartan y, si no queda
+  ninguno, la solicitud espera en la cola general (sin técnico, estado sin cambios).
+  Si no hay candidatos y la solicitud es P1, avisa `p1_unassigned` a los jefes de servicio.
 
 El turno se compara con la hora del centro de México (UTC-6).
 """
@@ -73,6 +75,7 @@ def _candidato(tecnico: User, carga: dict[uuid.UUID, int]) -> TecnicoCandidato:
         turno_inicio=turno.start_minute if turno is not None else None,
         turno_fin=turno.end_minute if turno is not None else None,
         carga=carga.get(tecnico.id, 0),
+        carga_maxima=tecnico.max_load,
     )
 
 
@@ -146,9 +149,10 @@ class AsignacionService:
         corte = ahora or _ahora()
         request = await self._solicitud(request_id)
         self._validar_estado(request)
-        propuesta = await self._propuesta(request, corte)
+        es_p1 = request.priority == Priority.P1
+        propuesta = reglas.con_capacidad(await self._propuesta(request, corte), es_p1)
         if not propuesta:
-            if request.priority == Priority.P1:
+            if es_p1:
                 try:
                     await self._notificaciones.emitir(
                         EventoAviso.P1_SIN_ASIGNAR, request.id, ahora=corte
@@ -157,7 +161,9 @@ class AsignacionService:
                 except Exception:
                     await self._session.rollback()
                     raise
-            log_event(logger, "asignacion_sin_candidatos", folio=request.folio)
+            # Sin candidatos (o todos en su carga máxima y no es P1): queda en la cola
+            # general, es decir, sin técnico y con el estado que ya tenía.
+            log_event(logger, "asignacion_en_cola_general", folio=request.folio, p1=es_p1)
             return None
         mejor = propuesta[0]
         return await self._guardar(
