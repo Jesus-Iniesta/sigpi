@@ -11,6 +11,7 @@ import {
   FileSearch,
   Inbox,
   PhoneCall,
+  ShieldCheck,
   Timer,
   Users,
 } from 'lucide-react'
@@ -39,6 +40,8 @@ const catalogRoles = [
 ]
 // Roles con el permiso reports.read (S5-11).
 const reportsRoles = ['administrator', 'service_manager']
+// Roles con el permiso audit.read (S5-21).
+const auditRoles = ['administrator', 'auditor']
 
 type NavigationItem = {
   label: string
@@ -90,6 +93,12 @@ const navigation: NavigationItem[] = [
     to: '/indicadores',
     icon: BarChart3,
     roles: reportsRoles,
+  },
+  {
+    label: 'Auditoría',
+    to: '/auditoria',
+    icon: ShieldCheck,
+    roles: auditRoles,
   },
 ]
 
