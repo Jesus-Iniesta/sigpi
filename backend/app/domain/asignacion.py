@@ -48,6 +48,7 @@ class TecnicoCandidato:
     turno_inicio: int | None = None  # minutos desde la medianoche
     turno_fin: int | None = None
     carga: int = 0
+    carga_maxima: int | None = None  # `None`: sin tope configurado
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +65,7 @@ class Propuesta:
     score: int
     carga: int
     desglose: tuple[Componente, ...]
+    al_limite: bool = False  # ya tiene su carga máxima de solicitudes activas
 
     @property
     def score_breakdown(self) -> str:
@@ -121,6 +123,14 @@ def turno_vigente(inicio: int | None, fin: int | None, minuto_del_dia: int) -> b
     return minuto >= inicio or minuto < fin
 
 
+def en_carga_maxima(carga: int, carga_maxima: int | None) -> bool:
+    """`True` si el técnico ya tiene tantas solicitudes activas como su tope.
+
+    Sin tope (`None`) nunca está al límite. Un tope de 0 lo deja siempre al límite.
+    """
+    return carga_maxima is not None and carga >= carga_maxima
+
+
 def puntos_carga(carga: int) -> int:
     return max(0, PUNTOS_CARGA_MAX - max(0, carga))
 
@@ -155,6 +165,7 @@ def puntuar(
         score=sum(c.puntos for c in desglose),
         carga=tecnico.carga,
         desglose=desglose,
+        al_limite=en_carga_maxima(tecnico.carga, tecnico.carga_maxima),
     )
 
 
@@ -167,3 +178,18 @@ def proponer(
     """
     propuestas = [puntuar(t, categoria_id, minuto_del_dia) for t in tecnicos if t.activo]
     return sorted(propuestas, key=lambda p: (-p.score, p.carga, p.nombre, str(p.technician_id)))
+
+
+def con_capacidad(propuestas: Iterable[Propuesta], es_p1: bool) -> list[Propuesta]:
+    """Candidatos que pueden recibir la solicitud automáticamente (S5-14, HU-03.3).
+
+    * **P1**: se ignora la carga máxima; cualquier candidato activo puede recibirla.
+    * **Demás prioridades**: se descartan los técnicos que ya están en su carga máxima.
+      Si no queda ninguno, la solicitud espera en la cola general (sin técnico).
+
+    Conserva el orden recibido. La asignación manual no usa esta regla.
+    """
+    propuestas = list(propuestas)
+    if es_p1:
+        return propuestas
+    return [p for p in propuestas if not p.al_limite]
